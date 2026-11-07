@@ -7,7 +7,23 @@ Explorer links use https://testnet.nearblocks.io.
 
 ## S1. Sputnik vault policy
 
-_See below (filled in after the sandbox and testnet runs)._
+**Question.** Can a contract create a Sputnik vault with the 7.5 policy, add a Transfer proposal, and approve it alone, while a 3-member `league` role can reject it first?
+
+**Found first:**
+
+- `sputnik-v2.testnet` runs an **old** factory, not the repo's main branch. The DAOs it creates report version "2.0.0". Both are ~470 KB wasm; each DAO gets its own copy (about 4.72 NEAR of storage). Main branch uses global contracts; testnet doesn't. Strings in the deployed wasm show 2.0.0 behavior: `act_proposal(id, action, memo)` has no `proposal` argument, `Finalize` only acts on expired proposals (`ERR_PROPOSAL_NOT_EXPIRED`), and there's no `on_proposal_callback`. So **a transfer that fails still leaves the proposal `Approved`.** Consequence for the design: `finalize` re-reads the pot and registers the receiver with the token before it approves, so a transfer can't fail. Extra JSON arguments are ignored by 2.0.0, so we always send `proposal` too, which newer DAOs require.
+- A gap in the spec's policy. With plain majority (`threshold: [1, 2]`), a `league` role whose only member is the commissioner reaches its threshold with one vote. Dues can arrive before any claim is approved, so the commissioner could move the pot alone. Fix: every `league` vote policy has `quorum: "2"`. The `settler` role keeps the default policy (quorum 0, one member, one vote approves).
+
+**Sandbox** (near-workspaces 0.23, with the exact `sputnik-v2.testnet` factory and DAO bytes from `fixtures/wasm/`): `cargo test -p commish --test vault --test flow`. 16 tests pass. They cover: the vault is created with the policy; the commissioner alone can't pass a transfer; league votes need a majority and at least 2; the contract (settler) approves alone after the hold; a league majority rejects first and `finalize` marks the payout stopped.
+
+**Testnet:** run with `cli/src/spikes/s1-testnet.ts` on 2026-11-07.
+
+- League 0, vault [`cmsh1-0.sputnik-v2.testnet`](https://testnet.nearblocks.io/address/cmsh1-0.sputnik-v2.testnet), created through the factory: [6NRKXhXV…](https://testnet.nearblocks.io/txns/6NRKXhXV3E1Wr6L2PnL2fFABV9WYxWaHq2S8NpqJACyG). Policy as designed: `settler` = the contract, `league` = commissioner.
+- 3 members claimed, were approved (each joined the `league` role), and paid $50. Vault $150, contract $0.
+- Week 3 settled through OutLayer and was paid after the 60 s hold. Roster 8 (alice) got $5.00, approved by the contract alone: [finalize 5YppDPNW…](https://testnet.nearblocks.io/txns/5YppDPNWDEuEPmcZQdcjxEPVFJz1dtciZxuEwo9DAWDn).
+- Week 1 settled, and 3 of the 4 league members rejected its proposal during the hold: [CcFLqZzL…](https://testnet.nearblocks.io/txns/CcFLqZzLKd47s4dkSwpTW9oMgbCbZGT5HLjD5tk39itG), [NsJGF2cr…](https://testnet.nearblocks.io/txns/NsJGF2crzeUy9VnqCJTiDrEjMKoWRcx4X4QaAFZBqSh), [BkGJVW88…](https://testnet.nearblocks.io/txns/BkGJVW88QMosRKjdeo31ebYBdA5fWPnnprTp9ms7FcLz). `finalize` marked it Stopped: [DRK2gARH…](https://testnet.nearblocks.io/txns/DRK2gARHTWSGPx3isoHK3huoaYSMBhhTdCajrVLqudsW). The pot kept the $5 ($145).
+
+**Decision.** **Pass.** Use the Sputnik vault as specified, plus `quorum: 2` on `league` votes. Vault deposit: 5.3 NEAR (4.72 locked plus room for ~50 proposals). No escrow fallback needed.
 
 ## S2. OutLayer job with Sleeper fetch
 
@@ -32,7 +48,15 @@ _See below (filled in after the sandbox and testnet runs)._
 - 11.2 s from send to final result. 15.6 M instructions, 1.34 s run time. Charged 0.0012 NEAR; the rest of the 0.05 NEAR attached was refunded.
 - Attestation for request 12264: `executed_wasm_sha256` = our pinned hash. `output_hash` `2b2e0cfd…` = SHA-256 of the exact bytes the callback receives. This holds because the job prints RFC 8785 canonical JSON with only integers and strings, which serde_json re-serializes unchanged. So the hash the contract stores equals the attested output hash.
 
-**Contract round-trip (yield/resume through our own contract):** _see "S2b" below, after the contract exists._
+**S2b: contract round trip.** `commish.commishhq.testnet.settle` → `outlayer.testnet.request_execution` (pinned `WasmUrl` + SHA-256) → yield … resume → our callbacks → vault proposal. Week 3: [5NkP6Wev…](https://testnet.nearblocks.io/txns/5NkP6WevkPBxUHd4kbVmWA4EauPfP4DwHdYE5J6w7DEc). The result was on chain 13.0 s after sending. What the contract stored matches [attestation 12278](https://testnet-api.outlayer.ai/attestations/by-request/12278) exactly:
+
+| | Contract (`get_settlement`) | OutLayer attestation |
+| --- | --- | --- |
+| input | `input_sha256` 565a1b57… | `input_hash` 565a1b57… |
+| output | `result_sha256` e3965d0f… | `output_hash` e3965d0f… |
+| code | pinned `job_wasm_sha256` 27d04669… | `executed_wasm_sha256` 27d04669… |
+
+Gotcha: NEAR's RPC reports the `settle` transaction final before the yield resumes. Clients wait on the contract's own record (`get_settlement`), not on the transaction status.
 
 **Decision.** Use OutLayer with `WasmUrl` on FastFS. The contract pins the wasm SHA-256 and passes it as `hash`. It stores `sha256(callback bytes)` and the OutLayer request id from the output. The receipt links `/attestations/by-request/{id}`. No keeper fallback needed so far.
 
@@ -59,7 +83,13 @@ _See below (filled in after the sandbox and testnet runs)._
 
 ## S4. Token
 
-_Filled in below._
+**Ran:** deployed `contracts/mock-usdc` ("Test USDC", symbol tUSDC, 6 decimals, public `mint` capped at 500 per account per UTC day) to [`usdc.commishhq.testnet`](https://testnet.nearblocks.io/address/usdc.commishhq.testnet): [83u9Apy4…](https://testnet.nearblocks.io/txns/83u9Apy4FggQsk8r2bKfrYoEvMRFnPYeQHTmyqDA7crM). Minted to three accounts, and each paid dues with `ft_transfer_call` to the commish contract: [DZ1vBSSq…](https://testnet.nearblocks.io/txns/DZ1vBSSqHTCbWa1CrbR37PLXkCXt5YN5kG2aT8A9FVwD), [FLhGYDfp…](https://testnet.nearblocks.io/txns/FLhGYDfpwBznaabfQ2LbHh1CnpEeK9AMq2DWrUtCFXSH), [2pYAqvaf…](https://testnet.nearblocks.io/txns/2pYAqvafgvAtQbKbxv5YbrB1pbXm9hW6jVDQpLnU2iKY). All three were forwarded to the vault in the same call chain.
+
+Circle testnet USDC: not tried. The spec calls it a nice-to-have, and depending on an outside faucet adds risk to the demo.
+
+**Decision.** **Pass.** Test USDC only (expected outcome).
+
+**Cost note:** 300 Tgas of prepaid gas reserves about 0.3 NEAR on testnet (pessimistic gas price), even though it burns far less. An account with 0.3 NEAR can't send `finalize`. Quick accounts get 0.5 NEAR, as specced.
 
 ## S5. Wallet and quick accounts
 
