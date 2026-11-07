@@ -35,8 +35,9 @@ export class SettleCore {
   private constructor(private readonly x: Exports) {}
 
   static async load(source: BufferSource | WebAssembly.Module): Promise<SettleCore> {
-    const module = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source);
-    const instance = await WebAssembly.instantiate(module, {});
+    // instantiate(bytes) resolves to { module, instance }; instantiate(module) to an Instance.
+    const result: unknown = await WebAssembly.instantiate(source as BufferSource, {});
+    const instance = (result as { instance?: WebAssembly.Instance }).instance ?? (result as WebAssembly.Instance);
     return new SettleCore(instance.exports as unknown as Exports);
   }
 

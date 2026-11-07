@@ -27,3 +27,6 @@ dist/
 
 # Local tool state
 .librarian/
+
+# Built in web/scripts/copy-wasm.mjs
+web/public/settle-core.wasm

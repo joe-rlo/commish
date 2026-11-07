@@ -3,3 +3,4 @@ export * from "./contract.js";
 export * from "./format.js";
 export * from "./sleeper.js";
 export * from "./check-math.js";
+export * from "./finality.js";

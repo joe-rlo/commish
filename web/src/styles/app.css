@@ -1,0 +1,290 @@
+@import "tailwindcss";
+@import "@fontsource/big-shoulders-display/600";
+@import "@fontsource/big-shoulders-display/800";
+@import "@fontsource/atkinson-hyperlegible/400";
+@import "@fontsource/atkinson-hyperlegible/700";
+@import "@fontsource/martian-mono/400";
+@import "@fontsource/martian-mono/500";
+
+/* Commish tokens. "A scoreboard in your group chat": bleacher white and navy ink by day,
+   a night game by dark. One accent (turf green) for money and success; amber only for
+   "on hold", red only for "stopped". */
+:root {
+  --paper: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #14213d;
+  --muted: #55627a;
+  --line: #d9dee6;
+  --board: #14213d;
+  --board-ink: #f6f7f9;
+  --board-dim: #8ea0bb;
+  --lamp: #5bd08a;
+  --money: #12804a;
+  --money-ink: #ffffff;
+  --money-tint: #e3f4ea;
+  --hold: #a15c07;
+  --hold-tint: #fdf1dc;
+  --stop: #b42318;
+  --stop-tint: #fde8e6;
+  --focus: #2563eb;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d1626;
+    --surface: #142238;
+    --ink: #eef2f7;
+    --muted: #9daabd;
+    --line: #26364f;
+    --board: #08101c;
+    --board-ink: #eef2f7;
+    --board-dim: #7d8ea8;
+    --lamp: #5bd08a;
+    --money: #5bd08a;
+    --money-ink: #0d1626;
+    --money-tint: #12301f;
+    --hold: #f2b453;
+    --hold-tint: #33260f;
+    --stop: #ff7b6e;
+    --stop-tint: #3a1715;
+    --focus: #8ab4ff;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-board: var(--board);
+  --color-board-ink: var(--board-ink);
+  --color-board-dim: var(--board-dim);
+  --color-lamp: var(--lamp);
+  --color-money: var(--money);
+  --color-money-ink: var(--money-ink);
+  --color-money-tint: var(--money-tint);
+  --color-hold: var(--hold);
+  --color-hold-tint: var(--hold-tint);
+  --color-stop: var(--stop);
+  --color-stop-tint: var(--stop-tint);
+  --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --font-sans: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, monospace;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--paper);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Display type: condensed, signage-like. Headlines are set tight. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.005em;
+}
+
+/* ---------- buttons: 44 px minimum ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.2;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.btn-money {
+  background: var(--money);
+  color: var(--money-ink);
+}
+.btn-ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.btn-stop {
+  background: transparent;
+  color: var(--stop);
+  border-color: currentColor;
+}
+.btn-block {
+  width: 100%;
+}
+
+.field {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.field:focus {
+  border-color: var(--ink);
+  outline: none;
+}
+
+/* ---------- the pot: a scoreboard ---------- */
+.board {
+  background: var(--board);
+  color: var(--board-ink);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--board-ink) 12%, transparent);
+}
+.lamp-digits {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--lamp);
+  line-height: 1;
+  display: inline-flex;
+  gap: 0.06em;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--lamp) 35%, transparent);
+}
+.lamp-digits .slot {
+  display: inline-grid;
+  place-items: center;
+  min-width: 0.64em;
+  padding: 0.08em 0.02em 0.04em;
+  border-radius: 0.09em;
+  background: color-mix(in srgb, var(--board-ink) 6%, transparent);
+  box-shadow: inset 0 -0.04em 0 color-mix(in srgb, black 30%, transparent);
+}
+.lamp-digits .sep {
+  min-width: 0.3em;
+  background: none;
+  box-shadow: none;
+}
+
+/* ---------- receipts: ticket stubs ---------- */
+.stub {
+  --notch: 10px;
+  --perf: 62%;
+  position: relative;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  /* Two notches where the stub tears off. */
+  mask:
+    radial-gradient(circle var(--notch) at 0 var(--perf), transparent 98%, #000 100%) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% var(--perf), transparent 98%, #000 100%) right / 51% 100% no-repeat;
+}
+.stub .perf {
+  border-top: 2px dashed var(--line);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+
+/* Rubber-stamp status. Caps because stamps are caps. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.18rem 0.55rem 0.12rem;
+  border: 2px solid currentColor;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3.5px currentColor;
+  transform: rotate(-3deg);
+  white-space: nowrap;
+}
+.stamp-paid {
+  color: var(--money);
+  background: var(--money-tint);
+}
+.stamp-hold {
+  color: var(--hold);
+  background: var(--hold-tint);
+}
+.stamp-stop {
+  color: var(--stop);
+  background: var(--stop-tint);
+}
+.stamp-muted {
+  color: var(--muted);
+}
+.stamp-flip {
+  animation: stamp-flip 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes stamp-flip {
+  0% { transform: rotate(-3deg) rotateX(0deg) scale(1); }
+  45% { transform: rotate(-3deg) rotateX(90deg) scale(1.05); }
+  100% { transform: rotate(-3deg) rotateX(0deg) scale(1); }
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.sheet-backdrop {
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

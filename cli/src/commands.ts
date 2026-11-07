@@ -30,6 +30,22 @@ function printSettlement(s: L.SettlementView | null) {
 
 export function registerLeagueCommands(program: Command) {
   program
+    .command("demo-seed")
+    .description("Create and seed a fresh demo league (root = demo admin): 12 paid teams, 60 s hold")
+    .option("--sleeper <id>", "completed Sleeper league", process.env.DEMO_SLEEPER_LEAGUE_ID ?? "1197787383500648448")
+    .option("--pre-settle <weeks>", "weeks to settle and pay right away", "1,2")
+    .action(async (o) => {
+      const { seedDemoLeague } = await import("@commish/shared/seed");
+      const { provider } = await import("./keys.js");
+      const weeks = String(o.preSettle).split(",").filter(Boolean).map(Number);
+      const r = await seedDemoLeague({
+        root: rootAccount(), provider: provider(), contractId: config.contractId, usdcId: config.usdcId,
+        sleeperLeagueId: o.sleeper, preSettleWeeks: weeks, log: (l) => console.log(`  ${l}`),
+      });
+      console.log(`✓ demo league ${r.leagueId}, vault ${r.vault}`);
+    });
+
+  program
     .command("create")
     .description("Create a league from a Sleeper league (the signer becomes commissioner)")
     .requiredOption("--sleeper <id>", "Sleeper league id")

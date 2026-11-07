@@ -1,0 +1,21 @@
+# Commish Worker: quick accounts, Test USDC faucet, 1Click dry-run quotes, demo reset.
+# Secrets (never in this file): DEMO_ROOT_PRIVATE_KEY, ADMIN_TOKEN, ONECLICK_JWT (optional).
+#   wrangler secret put DEMO_ROOT_PRIVATE_KEY
+# Local dev reads them from worker/.dev.vars (gitignored).
+name = "commish-worker"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NEAR_RPC_URL = "https://test.rpc.fastnear.com"
+DEMO_ROOT_ACCOUNT_ID = "commishhq.testnet"
+COMMISH_CONTRACT_ID = "commish.commishhq.testnet"
+MOCK_USDC_CONTRACT_ID = "usdc.commishhq.testnet"
+DEMO_SLEEPER_LEAGUE_ID = "1197787383500648448"
+ALLOWED_ORIGINS = "*"
+
+# Rate-limit counters. `wrangler kv namespace create RATE` and put the id here before deploying.
+[[kv_namespaces]]
+binding = "RATE"
+id = "00000000000000000000000000000000"
