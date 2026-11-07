@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/settle-core",
+    "crates/outlayer-job",
+    "crates/commish-verify",
+    "crates/settle-wasm",
+    "contracts/commish",
+    "contracts/mock-usdc",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+sha2 = "0.10"
+hex = "0.4"
+near-sdk = "5.29.1"
+near-contract-standards = "5.29.1"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

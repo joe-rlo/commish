@@ -1,0 +1,20 @@
+{
+  "name": "commish",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.27.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "commish": "tsx cli/src/index.ts",
+    "e2e": "tsx cli/src/e2e.ts",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "fixtures": "node fixtures/build-cases.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3"
+  }
+}

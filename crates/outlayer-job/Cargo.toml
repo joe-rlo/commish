@@ -1,0 +1,24 @@
+[package]
+name = "outlayer-job"
+version = "1.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Commish settlement job: fetches Sleeper, runs settle-core, prints canonical JSON. Runs inside an OutLayer TEE (wasm32-wasip2) or natively."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "outlayer-job"
+path = "src/main.rs"
+
+[dependencies]
+settle-core = { path = "../settle-core" }
+serde_json = { workspace = true }
+
+[target.'cfg(target_os = "wasi")'.dependencies]
+wasi-http-client = "0.2.1"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+ureq = { version = "3.1", default-features = false, features = ["rustls"] }

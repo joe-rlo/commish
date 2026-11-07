@@ -1,0 +1,17 @@
+{
+  "name": "@commish/cli",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@commish/shared": "workspace:*",
+    "commander": "15.0.0",
+    "near-api-js": "7.4.0"
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
+  }
+}

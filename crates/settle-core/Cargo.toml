@@ -1,0 +1,19 @@
+[package]
+name = "settle-core"
+version = "1.0.0"
+edition.workspace = true
+license.workspace = true
+description = "Commish payout rules: Sleeper JSON + league rules -> settlement result. Pure, no I/O, no clock."
+
+[features]
+default = ["sleeper"]
+# Parsing Sleeper JSON, canonical hashing and the settle functions.
+# Contracts build with default-features = false and use only the types and amount math.
+sleeper = ["dep:serde_json", "dep:sha2", "dep:hex"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+hex = { workspace = true, optional = true }
+ryu = "1"
