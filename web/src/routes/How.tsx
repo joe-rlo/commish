@@ -20,13 +20,14 @@ export function How() {
       </Section>
 
       <Section title="What the hold window is for">
-        Every payout waits out a hold window (24 hours by default) before the vault pays it. During the hold, a majority of the league can vote
-        to stop it, for example after a stat correction. Once the hold is over, anyone can release the payout.
+        Every payout waits out a hold window (24 hours by default) before the vault pays it. During the hold, a majority of the league's teams
+        can vote to stop it, for example after a stat correction. Once the hold is over, anyone can release the payout.
       </Section>
 
       <Section title="What the league can vote on">
-        The vault's members are the commissioner and every approved team. A majority of them, and at least two people, can stop a payout or
-        vote to do anything else with the vault, including firing Commish. It's your league's money.
+        The vault's members are the commissioner and every approved team. Votes need a majority of the league's teams (7 in a 12-team
+        league), so the commissioner and a friend can't decide alone. That majority can stop a payout or vote to do anything else with the
+        vault, including firing Commish. It's your league's money.
       </Section>
 
       <Section title="Check it yourself">
@@ -36,7 +37,8 @@ export function How() {
 
       <Section title="What you still trust">
         Sleeper for the scores, OutLayer and Intel for running the enclave honestly, the open-source Commish contract for following its rules,
-        and your league's majority for overrides. Team claims are approved by the commissioner, because Sleeper can't prove who owns a team.
+        and your league's majority for overrides. Team claims are approved by the commissioner, because Sleeper can't prove who owns a team:
+        check that every team on the league page belongs to who you think.
         Sleeper can correct stats after a week settles; the hold window and the 36-hour wait reduce that risk but don't remove it.
       </Section>
 

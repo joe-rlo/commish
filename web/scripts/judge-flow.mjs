@@ -14,6 +14,7 @@ const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, de
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
+  page.on("response", (r) => r.status() >= 400 && errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url().slice(0, 120)}`));
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 
 try {

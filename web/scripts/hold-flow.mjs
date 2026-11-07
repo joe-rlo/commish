@@ -27,6 +27,7 @@ try {
 
   const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })).newPage();
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("response", (r) => r.status() >= 400 && errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url().slice(0, 120)}`));
   page.on("dialog", (d) => d.accept());
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.evaluate(([id, sk]) => localStorage.setItem("commish:quick-account", JSON.stringify({ accountId: id, secretKey: sk })), [key.account_id, key.private_key]);

@@ -2,6 +2,16 @@
 
 One line each, newest first: date · decision · why.
 
+- 2026-11-07 · Redeployed as `commish-v2.commishhq.testnet` (vault prefix `cmsh2-`) · the config pins the job hash and has no setters, and the job hash changed (reproducible build) along with the security fixes; `commish.commishhq.testnet` stays as the Day-0 spike evidence
+- 2026-11-07 · `league` votes need a quorum of a majority of the league's teams (≥ 2), set at vault creation · an independent security review showed that with quorum 2 the commissioner plus one approved sock-puppet account could pass a transfer immediately. Spec 7.5 said "majority by role weight"; flagged to Joe
+- 2026-11-07 · `approve_claim` names the account being approved · a claim that slips in before the approval can't be approved by mistake
+- 2026-11-07 · Dues must cover what the team owes in one payment; smaller payments are returned · otherwise a 1-unit payment from anyone locks a new league's rules
+- 2026-11-07 · Unknown rosters in a result are recorded and their payouts withheld, instead of rejecting the result · a roster list that doesn't match Sleeper would otherwise block every week and the season
+- 2026-11-07 · Season isn't blocked by a week that failed with NO_SCORES · such a week can never settle
+- 2026-11-07 · Vault proposal period 180 days (spec: 14) · a payout must not expire before anyone finalizes it
+- 2026-11-07 · `finalize` approves at most 3 payouts per call; settle callbacks carry a request nonce; vault names get a random suffix; league ids are range-checked · gas safety for big ties, no duplicate proposals from a late callback, no vault-name squatting
+- 2026-11-07 · Enclave job built by scripts/build-job.sh: rustc pinned to 1.98.1, machine paths remapped · the wasm embedded /Users/… registry paths, so other machines got a different hash; two builds from different checkouts and CARGO_HOMEs now match (71854dd1…)
+- 2026-11-07 · Web reads through a failover RPC (FastNEAR, then rpc.testnet.near.org) · one 408 from an RPC during testing
 - 2026-11-07 · Worker adds `POST /sponsor` (not in the spec): sends one vault deposit to a quick account that creates a league; 1 per IP and 3 total per day · a vault costs ~5.4 testnet NEAR and quick accounts get 0.5, so "Start a league" would otherwise dead-end for a judge
 - 2026-11-07 · The Worker signs only account creation, faucet mints, sponsorship, and (admin-only) demo seeding · the demo reset needs 12 team accounts to claim and pay; their keys are made and dropped during the reset
 - 2026-11-07 · Demo seeding pre-settles weeks 1–2 · the feed shows real Paid receipts a judge can open and check before pressing anything

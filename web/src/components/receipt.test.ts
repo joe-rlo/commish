@@ -36,7 +36,8 @@ describe("polling and votes", () => {
     expect(pollInterval([base])).toBe(10_000);
     expect(pollInterval([{ ...base, status: "Final" }])).toBe(false);
   });
-  it("stopping a payout takes a majority and at least 2 votes", () => {
-    expect([1, 2, 3, 4, 12, 13].map(rejectThreshold)).toEqual([2, 2, 2, 3, 7, 7]);
+  it("stopping a payout takes a majority of members and the team-majority quorum", () => {
+    expect([1, 2, 3, 4].map((m) => rejectThreshold(m, 2))).toEqual([2, 2, 2, 3]);
+    expect([2, 9, 13].map((m) => rejectThreshold(m, 7))).toEqual([7, 7, 7]);
   });
 });

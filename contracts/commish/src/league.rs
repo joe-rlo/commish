@@ -75,8 +75,21 @@ impl Contract {
             Promise::new(commissioner.clone()).transfer(NearToken::from_yoctonear(refund)).detach();
         }
 
-        let name = format!("{}{}", self.config.vault_name_prefix, id);
-        let init = vault_init_args(&name, &league.name, &league.sleeper_league_id, &env::current_account_id(), &commissioner);
+        // An unpredictable suffix, so nobody can create the next league's vault name first.
+        let seed = env::random_seed();
+        let suffix: String = seed.iter().take(3).map(|b| format!("{b:02x}")).collect();
+        let name = format!("{}{}-{}", self.config.vault_name_prefix, id, suffix);
+        let vault: AccountId = format!("{}.{}", name, self.config.sputnik_factory_id)
+            .parse()
+            .unwrap_or_else(|_| env::panic_str("vault name is not a valid account id"));
+        let init = vault_init_args(
+            &name,
+            &league.name,
+            &league.sleeper_league_id,
+            &env::current_account_id(),
+            &commissioner,
+            args.rosters.len(),
+        );
         let create_args = json!({
             "name": name,
             "args": Base64VecU8(near_sdk::serde_json::to_vec(&init).unwrap()),
@@ -89,19 +102,16 @@ impl Contract {
                 NearToken::from_yoctonear(self.config.vault_deposit.0),
                 GAS_FACTORY_CREATE,
             )
-            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_VAULT_CREATED).on_vault_created(id))
+            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_VAULT_CREATED).on_vault_created(id, vault))
             .detach();
         id
     }
 
     #[private]
-    pub fn on_vault_created(&mut self, league_id: u64, #[callback_result] created: Result<bool, PromiseError>) {
+    pub fn on_vault_created(&mut self, league_id: u64, vault: AccountId, #[callback_result] created: Result<bool, PromiseError>) {
         let ok = matches!(created, Ok(true));
         let vault_deposit = self.config.vault_deposit.0;
         let token_deposit = self.config.token_storage_deposit.0;
-        let vault: AccountId = format!("{}{}.{}", self.config.vault_name_prefix, league_id, self.config.sputnik_factory_id)
-            .parse()
-            .unwrap();
         let league = self.league_mut(league_id);
         if !ok {
             // The factory returns the deposit to us when it fails; pass it on. The vault and
@@ -182,11 +192,12 @@ impl Contract {
         emit("team_claimed", json!({ "league_id": league_id, "roster_id": roster_id, "account": who }));
     }
 
-    /// Commissioner only. Approves a pending claim: the account gets the team's payouts,
-    /// joins the vault's `league` role, and is registered with the token.
-    /// Attach `token_storage_deposit` for the registration.
+    /// Commissioner only. Approves `account`'s pending claim: the account gets the team's
+    /// payouts, joins the vault's `league` role, and is registered with the token. Naming the
+    /// account means a claim that slipped in just before can't be approved by mistake.
+    /// Attach `token_storage_deposit` for the registration; any excess is refunded.
     #[payable]
-    pub fn approve_claim(&mut self, league_id: u64, roster_id: u16) {
+    pub fn approve_claim(&mut self, league_id: u64, roster_id: u16, account: AccountId) {
         let caller = env::predecessor_account_id();
         let league = self.active_league(league_id).clone();
         require!(caller == league.commissioner, "Only the commissioner can approve claims");
@@ -197,11 +208,13 @@ impl Contract {
         let mut teams = self.teams_of(league_id);
         let team = teams.iter_mut().find(|t| t.roster_id == roster_id).unwrap_or_else(|| env::panic_str("No such team"));
         let ClaimStatus::Pending(member) = team.claim.clone() else { env::panic_str("That team has no pending claim") };
+        require!(member == account, "That team's pending claim is from a different account");
         team.claim = ClaimStatus::Approved;
         team.account = Some(member.clone());
         self.save_teams(league_id, teams);
         emit("claim_approved", json!({ "league_id": league_id, "roster_id": roster_id, "account": member }));
         self.register_with_token(&league.token, &member, env::attached_deposit());
+        self.refund_excess(env::attached_deposit().as_yoctonear(), self.config.token_storage_deposit.0);
         self.propose_membership(&league, &member, true);
     }
 
@@ -224,6 +237,11 @@ impl Contract {
     pub fn reassign_team(&mut self, league_id: u64, roster_id: u16, account: AccountId) {
         let league = self.active_league(league_id).clone();
         require!(Some(env::predecessor_account_id()) == league.vault, "Only the league's vault can reassign a team");
+        // The new account must be registered with the token, or its payouts would fail silently.
+        require!(
+            env::attached_deposit().as_yoctonear() >= self.config.token_storage_deposit.0,
+            format!("Attach {} yoctoNEAR to register the new account with the token", self.config.token_storage_deposit.0)
+        );
         let mut teams = self.teams_of(league_id);
         require!(
             !teams.iter().any(|t| t.roster_id != roster_id && t.account.as_ref() == Some(&account)),
@@ -234,9 +252,8 @@ impl Contract {
         team.claim = ClaimStatus::Approved;
         self.save_teams(league_id, teams);
         emit("team_reassigned", json!({ "league_id": league_id, "roster_id": roster_id, "from": old, "to": account }));
-        if env::attached_deposit().as_yoctonear() >= self.config.token_storage_deposit.0 {
-            self.register_with_token(&league.token, &account, env::attached_deposit());
-        }
+        self.register_with_token(&league.token, &account, env::attached_deposit());
+        self.refund_excess(env::attached_deposit().as_yoctonear(), self.config.token_storage_deposit.0);
         if let Some(old) = old {
             if old != league.commissioner && old != account {
                 self.propose_membership(&league, &old, false);
@@ -267,6 +284,13 @@ impl Contract {
 }
 
 impl Contract {
+    /// Returns attached NEAR above what was used to the caller.
+    pub(crate) fn refund_excess(&self, attached: u128, used: u128) {
+        if attached > used {
+            Promise::new(env::predecessor_account_id()).transfer(NearToken::from_yoctonear(attached - used)).detach();
+        }
+    }
+
     pub(crate) fn register_with_token(&self, token: &AccountId, account: &AccountId, deposit: NearToken) {
         Promise::new(token.clone())
             .function_call(

@@ -31,8 +31,12 @@ export async function holdPayout(signer: Signer, vaultId: string, proposalId: nu
 export const claim = (signer: Signer, leagueId: number, rosterId: number) =>
   signer.call({ contractId: config.contractId, method: "claim_team", args: { league_id: leagueId, roster_id: rosterId } });
 
-export const approve = (signer: Signer, leagueId: number, rosterId: number) =>
-  signer.call({ contractId: config.contractId, method: "approve_claim", args: { league_id: leagueId, roster_id: rosterId }, deposit: TOKEN_STORAGE, gas: 200n * TGAS });
+/** Approves `account`'s claim; the contract refuses if someone else's claim is pending now. */
+export const approve = (signer: Signer, leagueId: number, rosterId: number, account: string) =>
+  signer.call({
+    contractId: config.contractId, method: "approve_claim",
+    args: { league_id: leagueId, roster_id: rosterId, account }, deposit: TOKEN_STORAGE, gas: 200n * TGAS,
+  });
 
 export const decline = (signer: Signer, leagueId: number, rosterId: number) =>
   signer.call({ contractId: config.contractId, method: "decline_claim", args: { league_id: leagueId, roster_id: rosterId } });

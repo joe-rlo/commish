@@ -13,6 +13,7 @@ const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })).newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
+  page.on("response", (r) => r.status() >= 400 && errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url().slice(0, 120)}`));
 try {
   await page.goto(`${base}/join/${leagueId}`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Which team is yours?" }).waitFor({ timeout: 30_000 });

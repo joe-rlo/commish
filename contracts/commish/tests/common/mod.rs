@@ -232,9 +232,9 @@ impl Env {
             .unwrap()
     }
 
-    pub async fn approve(&self, by: &Account, league: u64, roster: u16) -> ExecutionFinalResult {
+    pub async fn approve(&self, by: &Account, league: u64, roster: u16, account: &AccountId) -> ExecutionFinalResult {
         by.call(self.commish.id(), "approve_claim")
-            .args_json(json!({ "league_id": league, "roster_id": roster }))
+            .args_json(json!({ "league_id": league, "roster_id": roster, "account": account }))
             .deposit(NearToken::from_yoctonear(1_250_000_000_000_000_000_000))
             .gas(Gas::from_tgas(200))
             .transact()
@@ -244,7 +244,7 @@ impl Env {
 
     pub async fn claim_and_approve(&self, who: &Account, league: u64, roster: u16) {
         check(&self.claim(who, league, roster).await, "claim");
-        check(&self.approve(&self.commissioner, league, roster).await, "approve");
+        check(&self.approve(&self.commissioner, league, roster, who.id()).await, "approve");
     }
 
     pub async fn pay(&self, who: &Account, league: u64, roster: u16, amount: u128) -> ExecutionFinalResult {

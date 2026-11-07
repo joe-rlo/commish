@@ -10,7 +10,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 NEAR_RPC_URL = "https://test.rpc.fastnear.com"
 DEMO_ROOT_ACCOUNT_ID = "commishhq.testnet"
-COMMISH_CONTRACT_ID = "commish.commishhq.testnet"
+COMMISH_CONTRACT_ID = "commish-v2.commishhq.testnet"
 MOCK_USDC_CONTRACT_ID = "usdc.commishhq.testnet"
 DEMO_SLEEPER_LEAGUE_ID = "1197787383500648448"
 ALLOWED_ORIGINS = "*"

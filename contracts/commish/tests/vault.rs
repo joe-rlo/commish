@@ -9,18 +9,19 @@ use serde_json::json;
 async fn create_league_deploys_vault_with_the_policy() {
     let env = Env::new().await;
     let (id, vault) = env.create_league(&[1, 2, 3], json!({})).await;
-    assert_eq!(vault.as_str(), format!("cm-{id}.{}", env.factory.id()));
+    let name = vault.as_str().strip_suffix(&format!(".{}", env.factory.id())).unwrap();
+    assert!(name.starts_with(&format!("cm-{id}-")) && name.len() == format!("cm-{id}-").len() + 6, "unpredictable suffix: {name}");
 
     let p = env.vault_policy(&vault).await;
     assert_eq!(p["proposal_bond"], "0");
-    assert_eq!(p["proposal_period"], "1209600000000000");
+    assert_eq!(p["proposal_period"], "15552000000000000", "180 days");
     let roles = p["roles"].as_array().unwrap();
     assert_eq!(roles.len(), 2);
     assert_eq!(roles[0]["name"], "settler");
     assert_eq!(roles[0]["kind"]["Group"], json!([env.commish.id()]));
     assert_eq!(roles[1]["name"], "league");
     assert_eq!(roles[1]["kind"]["Group"], json!([env.commissioner.id()]));
-    assert_eq!(roles[1]["vote_policy"]["transfer"]["quorum"], "2");
+    assert_eq!(roles[1]["vote_policy"]["transfer"]["quorum"], "2", "3 teams: quorum max(2, 3/2+1)");
 
     // The vault is registered with the token and the league remembers it.
     let reg: serde_json::Value = env
@@ -151,4 +152,42 @@ async fn a_commissioner_alone_cannot_move_money() {
     // And the commish contract has no method that moves money for the commissioner: the only
     // commissioner methods are approve_claim, decline_claim and update_rules (see tests in flow.rs).
     let _ = NearToken::from_near(0);
+}
+
+#[tokio::test]
+async fn a_commissioner_with_a_sock_puppet_cannot_move_money() {
+    // 12 teams: league votes need 7. The commissioner approves one account they control and
+    // the two of them try to pay the pot to the commissioner.
+    let env = Env::new().await;
+    let (id, vault) = env.create_league(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], json!({})).await;
+    let payer = env.member("payer", 200 * USDC).await;
+    for r in [3u16, 4] {
+        check(&env.pay(&payer, id, r, 50 * USDC).await, "honest dues");
+    }
+    let sock = env.member("sock", 0).await;
+    env.claim_and_approve(&sock, id, 7).await;
+    let p = env.vault_policy(&vault).await;
+    assert_eq!(p["roles"][1]["vote_policy"]["transfer"]["quorum"], "7");
+    let kind = json!({ "Transfer": { "token_id": env.token.id(), "receiver_id": env.commissioner.id(), "amount": (100 * USDC).to_string(), "msg": null } });
+    let r = sock
+        .call(&vault, "add_proposal")
+        .args_json(json!({ "proposal": { "description": "ours now", "kind": kind } }))
+        .transact()
+        .await
+        .unwrap();
+    check(&r, "add_proposal");
+    let pid: u64 = r.json().unwrap();
+    for who in [&sock, &env.commissioner] {
+        check(
+            &who.call(&vault, "act_proposal")
+                .args_json(json!({ "id": pid, "action": "VoteApprove", "proposal": kind }))
+                .gas(Gas::from_tgas(150))
+                .transact()
+                .await
+                .unwrap(),
+            "vote",
+        );
+    }
+    assert_eq!(env.proposal(&vault, pid).await["status"], "InProgress", "2 of the 7 votes needed");
+    assert_eq!(env.usdc_balance(&vault).await, 100 * USDC, "the pot is untouched");
 }

@@ -1,5 +1,5 @@
 // Spike S2, step 1: upload the outlayer-job wasm to FastFS and wait for it to be served.
-// Usage: pnpm exec tsx cli/src/spikes/s2-upload.ts target/wasm32-wasip2/release/outlayer-job.wasm
+// Usage: pnpm exec tsx cli/src/spikes/s2-upload.ts target/job/wasm32-wasip2/release/outlayer-job.wasm (from scripts/build-job.sh)
 import { readFileSync } from "node:fs";
 import { rootAccount } from "../keys.js";
 import { config } from "../config.js";

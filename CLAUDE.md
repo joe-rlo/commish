@@ -54,7 +54,7 @@ pnpm fixtures                            # rebuild fixtures/cases from fixtures/
 pnpm --filter @commish/web dev           # web app on :5173
 cd worker && pnpm exec wrangler dev      # Worker on :8787 (needs worker/.dev.vars)
 node web/scripts/judge-flow.mjs | join-flow.mjs | create-flow.mjs   # browser flows vs testnet
-cargo build --release -p outlayer-job --target wasm32-wasip2         # the enclave job (hash must match the pinned one)
+./scripts/build-job.sh                   # reproducible enclave job build; prints the sha256 the contract pins
 ```
 
 ## Conventions

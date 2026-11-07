@@ -87,7 +87,7 @@ impl Contract {
     }
 
     pub fn get_league(&self, league_id: u64) -> Option<LeagueView> {
-        let league = self.leagues.get(league_id as u32)?.clone();
+        let league = self.leagues.get(u32::try_from(league_id).ok()?)?.clone();
         let teams = self.teams.get(&league_id).cloned().unwrap_or_default();
         Some(LeagueView {
             team_count: teams.len() as u32,
@@ -128,7 +128,7 @@ impl Contract {
 
     /// Settlements of a league, newest first.
     pub fn get_settlements(&self, league_id: u64) -> Vec<SettlementView> {
-        let Some(league) = self.leagues.get(league_id as u32) else { return vec![] };
+        let Some(league) = u32::try_from(league_id).ok().and_then(|i| self.leagues.get(i)) else { return vec![] };
         let mut out: Vec<SettlementView> = league
             .settlement_keys
             .iter()
@@ -149,11 +149,15 @@ impl Contract {
 
 impl Contract {
     pub(crate) fn league(&self, league_id: u64) -> &League {
-        self.leagues.get(league_id as u32).unwrap_or_else(|| env::panic_str("No league with that id"))
+        u32::try_from(league_id)
+            .ok()
+            .and_then(|i| self.leagues.get(i))
+            .unwrap_or_else(|| env::panic_str("No league with that id"))
     }
 
     pub(crate) fn league_mut(&mut self, league_id: u64) -> &mut League {
-        self.leagues.get_mut(league_id as u32).unwrap_or_else(|| env::panic_str("No league with that id"))
+        let i = u32::try_from(league_id).unwrap_or_else(|_| env::panic_str("No league with that id"));
+        self.leagues.get_mut(i).unwrap_or_else(|| env::panic_str("No league with that id"))
     }
 
     pub(crate) fn teams_of(&self, league_id: u64) -> Vec<Team> {
@@ -180,9 +184,9 @@ fn validate_config(c: &Config) {
     require!(c.core_version == settle_core::CORE_VERSION, "core_version must match the settle-core this contract was built with");
     let p = &c.vault_name_prefix;
     require!(
-        !p.is_empty() && p.len() <= 24 && p.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        !p.is_empty() && p.len() <= 20 && p.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
             && !p.starts_with('-'),
-        "vault_name_prefix must be 1-24 of a-z, 0-9, '-'"
+        "vault_name_prefix must be 1-20 of a-z, 0-9, '-'"
     );
     require!(c.vault_deposit.0 > 0 && c.token_storage_deposit.0 > 0 && c.outlayer_deposit.0 > 0, "deposits must be set");
 }

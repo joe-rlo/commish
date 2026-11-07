@@ -35,9 +35,10 @@ async fn claims_need_the_commissioner_and_add_members_to_the_vault() {
     // Someone else can't take a pending team, and alice can't claim a second team.
     assert!(failure_text(&env.claim(&b, id, 2).await).contains("already claimed"));
     assert!(failure_text(&env.claim(&a, id, 3).await).contains("already have a team"));
-    // Only the commissioner approves.
-    assert!(failure_text(&env.approve(&b, id, 2).await).contains("Only the commissioner"));
-    check(&env.approve(&env.commissioner, id, 2).await, "approve");
+    // Only the commissioner approves, and only the account that actually claimed.
+    assert!(failure_text(&env.approve(&b, id, 2, a.id()).await).contains("Only the commissioner"));
+    assert!(failure_text(&env.approve(&env.commissioner, id, 2, b.id()).await).contains("different account"));
+    check(&env.approve(&env.commissioner, id, 2, a.id()).await, "approve");
     let teams = env.teams(id).await;
     assert_eq!(teams[1]["claim"], "Approved");
     assert_eq!(teams[1]["account"], json!(a.id()));
@@ -212,8 +213,11 @@ async fn a_league_majority_stops_a_payout_during_the_hold() {
     let pid = s["payouts"][0]["proposal_id"].as_u64().unwrap();
     let kind = env.proposal(&vault, pid).await["kind"].clone();
 
-    // 9 members: threshold is 9/2 + 1 = 5 rejects.
-    for m in members.iter().take(5) {
+    // 9 members, 12 teams: stopping a payout takes max(9/2 + 1, 12/2 + 1) = 7 rejects.
+    for (i, m) in members.iter().take(7).enumerate() {
+        if i == 6 {
+            assert_eq!(env.proposal(&vault, pid).await["status"], "InProgress", "6 rejects aren't enough");
+        }
         check(
             &m.call(&vault, "act_proposal")
                 .args_json(json!({ "id": pid, "action": "VoteReject", "proposal": kind }))
@@ -464,7 +468,7 @@ async fn the_commissioner_has_no_method_that_moves_money() {
     let c = &env.commissioner;
     let x = env.member("x", 0).await;
     check(&env.claim(&x, id, 5).await, "claim");
-    check(&env.approve(c, id, 5).await, "approve");
+    check(&env.approve(c, id, 5, x.id()).await, "approve");
     let _ = c.call(env.commish.id(), "decline_claim").args_json(json!({ "league_id": id, "roster_id": 6 })).transact().await.unwrap();
     let _ = c
         .call(env.commish.id(), "update_rules")
@@ -499,13 +503,14 @@ async fn the_commissioner_has_no_method_that_moves_money() {
 async fn a_league_vote_can_reassign_a_team() {
     use near_workspaces::types::Gas;
     let env = Env::new().await;
-    let (id, vault) = env.create_league(&ALL, json!({})).await;
+    // 3 teams: a league vote needs 2.
+    let (id, vault) = env.create_league(&[1, 2, 3], json!({})).await;
     let a = env.member("alice", 0).await;
     let b = env.member("bob", 0).await;
     let c = env.member("carol", 0).await;
     env.claim_and_approve(&a, id, 2).await;
     env.claim_and_approve(&b, id, 3).await;
-    // League role: commissioner, alice, bob → 2 votes pass. Move roster 2 from alice to carol.
+    // League role: commissioner, alice, bob; 2 votes pass. Move roster 2 from alice to carol.
     let args = json!({ "league_id": id, "roster_id": 2, "account": c.id() }).to_string();
     use near_sdk::base64::Engine;
     let b64 = near_sdk::base64::engine::general_purpose::STANDARD.encode(args);
@@ -547,4 +552,86 @@ async fn a_league_vote_can_reassign_a_team() {
     assert!(!group.as_array().unwrap().contains(&json!(a.id())), "alice left the league role: {group}");
     let reg: Value = env.token.view("storage_balance_of").args_json(json!({ "account_id": c.id() })).await.unwrap().json().unwrap();
     assert!(!reg.is_null(), "carol is registered with the token");
+}
+
+#[tokio::test]
+async fn a_partial_payment_is_returned_and_does_not_lock_the_rules() {
+    let env = Env::new().await;
+    let (id, vault) = env.create_league(&ALL, json!({})).await;
+    let griefer = env.member("griefer", 10 * USDC).await;
+    check(&env.pay(&griefer, id, 1, 1).await, "1-unit payment");
+    assert_eq!(env.usdc_balance(griefer.id()).await, 10 * USDC, "returned whole");
+    assert_eq!(env.usdc_balance(&vault).await, 0);
+    let league = env.league(id).await;
+    assert_eq!(league["rules_locked"], false, "rules still open");
+    assert_eq!(env.teams(id).await[0]["dues_paid"], "0");
+}
+
+#[tokio::test]
+async fn a_roster_the_league_does_not_list_is_withheld_not_a_failure() {
+    let env = Env::new().await;
+    // The commissioner listed 11 of the 12 Sleeper rosters; week 1's winner (roster 2) is missing.
+    let rosters: Vec<u16> = ALL.iter().copied().filter(|r| *r != 2).collect();
+    let (id, _vault) = env.create_league(&rosters, json!({})).await;
+    let payer = env.member("payer", 200 * USDC).await;
+    check(&env.pay(&payer, id, 1, 50 * USDC).await, "pay");
+    let anyone = env.member("anyone", 0).await;
+    check(&env.settle(&anyone, id, week(1)).await, "settle");
+    let s = env.settlement(id, week(1)).await;
+    assert_eq!(s["status"], "Final", "{s}");
+    assert_eq!(s["scores"].as_array().unwrap().len(), 12, "all of Sleeper's scores are on record");
+    assert_eq!(s["payouts"][0]["roster_id"], 2);
+    assert_eq!(s["payouts"][0]["status"], "Withheld");
+    assert_eq!(s["payouts"][0]["withheld_reason"], "no_account");
+}
+
+#[tokio::test]
+async fn a_four_way_tie_pays_out_over_two_finalize_calls() {
+    let env = Env::new().await;
+    let (id, vault, members) = league_with_members(&env, 4, json!({ "weekly_amount": (4 * USDC).to_string() })).await;
+    let anyone = env.member("anyone", 0).await;
+    // The job reports rosters 1-4 tied at the top.
+    let tie = |input: &str, rid: u64| {
+        let mut out: Value = serde_json::from_str(&run_real_job(input, rid)).unwrap();
+        out["payouts"] = json!([1, 2, 3, 4].map(|r| json!({ "roster_id": r, "amount": USDC.to_string() })));
+        out.to_string()
+    };
+    check(&env.settle_with(&anyone, id, week(1), Some(&tie)).await, "settle");
+    let s = env.settlement(id, week(1)).await;
+    assert_eq!(s["payouts"].as_array().unwrap().iter().filter(|p| p["status"] == "OnHold").count(), 4);
+    env.wait_until(s["hold_ends_at_ns"].as_str().unwrap().parse().unwrap()).await;
+    check(&env.finalize(&anyone, id, week(1)).await, "finalize 1");
+    let s = env.settlement(id, week(1)).await;
+    assert_eq!(s["status"], "OnHold", "one payout left after the first call");
+    assert_eq!(s["payouts"].as_array().unwrap().iter().filter(|p| p["status"] == "Paid").count(), 3);
+    check(&env.finalize(&anyone, id, week(1)).await, "finalize 2");
+    let s = env.settlement(id, week(1)).await;
+    assert_eq!(s["status"], "Final");
+    for m in &members {
+        assert_eq!(env.usdc_balance(m.id()).await, 50 * USDC + USDC, "{} got $1", m.id());
+    }
+    assert_eq!(env.usdc_balance(&vault).await, 200 * USDC - 4 * USDC);
+    assert_eq!(env.league(id).await["on_hold_total"], "0");
+}
+
+#[tokio::test]
+async fn a_week_without_scores_does_not_block_the_season() {
+    let env = Env::new().await;
+    // One regular-season week, whose matchups come back empty (NO_SCORES).
+    let (id, _vault) = env.create_league(&ALL, json!({ "regular_season_weeks": 1, "weekly_amount": "1000000" })).await;
+    let anyone = env.member("anyone", 0).await;
+    let empty = |input: &str, rid: u64| {
+        let mut rec = recorded_sleeper();
+        for (u, v) in rec.iter_mut() {
+            if u.ends_with("/matchups/1") {
+                *v = json!([]);
+            }
+        }
+        outlayer_job::run_job(input, &mut outlayer_job::MapFetch(rec), Some(rid.to_string()))
+    };
+    check(&env.settle_with(&anyone, id, week(1), Some(&empty)).await, "settle week 1");
+    let s = env.settlement(id, week(1)).await;
+    assert!(s["error"].as_str().unwrap().starts_with("NO_SCORES"), "{s}");
+    check(&env.settle(&anyone, id, season()).await, "the season settles");
+    assert_ne!(env.settlement(id, season()).await["status"], "Failed");
 }

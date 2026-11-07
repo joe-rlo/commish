@@ -104,3 +104,7 @@ Circle testnet USDC: not tried. The spec calls it a nice-to-have, and depending 
 ## Day-0 summary
 
 All five spikes pass. No fallback (escrow or keeper) needed. Gates G1 (dues land in a vault on testnet) and G2 (a real finished week pays the winner on testnet with an attestation) passed on Day 0; see S1 and S2b.
+
+## After Day 0: v2 deployment
+
+An independent security review of the contract (2026-11-07) found that a commissioner plus one sock-puppet account could pass a vault transfer under the quorum-2 policy, plus several smaller issues (see docs/DECISIONS.md). The fixes and a reproducible enclave job (`71854dd1…`, `scripts/build-job.sh`) shipped as `commish-v2.commishhq.testnet`: deploy [GF9kah2E…](https://testnet.nearblocks.io/txns/GF9kah2EPPXgiqq3VdnwARLYjNvkKSDgbDEgakS5aMBP). Demo league 0 on v2 has vault `cmsh2-0-84ce51.sputnik-v2.testnet` with quorum 7 for 12 teams. The judge flow passed again in the browser (88 s), and `commish verify --settlement 0:w3` reproduced the enclave's bytes and matched attestation 12343.

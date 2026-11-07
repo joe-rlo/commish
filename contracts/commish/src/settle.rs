@@ -40,6 +40,10 @@ const MAX_RESULT_BYTES: usize = 16 * 1024;
 const JOB_MAX_INSTRUCTIONS: u64 = 2_000_000_000;
 const JOB_MAX_SECONDS: u64 = 60;
 const JOB_MAX_MEMORY_MB: u32 = 128;
+/// Payouts approved per `finalize` call.
+pub const MAX_FINALIZE: usize = 3;
+/// Treat a proposal this close to expiry as expired (the vote lands a few blocks later).
+const EXPIRY_MARGIN_NS: u64 = 24 * 3600 * 1_000_000_000;
 
 pub(crate) fn job_input_json(league: &League, key: SettlementKey, now_ns: u64) -> String {
     let (kind, week) = match key {
@@ -89,11 +93,14 @@ impl Contract {
             SettlementKey::Season => {
                 if league.weekly_amount.0 > 0 {
                     for w in 1..=league.regular_season_weeks {
-                        let done = self.settlements.get(&SettlementKey::Week(w).storage_key(league_id)).map(|s| s.status);
-                        require!(
-                            matches!(done, Some(SettlementStatus::OnHold) | Some(SettlementStatus::Final)),
-                            format!("Settle every week first: week {w} isn't settled yet")
-                        );
+                        let week = self.settlements.get(&SettlementKey::Week(w).storage_key(league_id));
+                        // A week Sleeper has no scores for (e.g. no matchups that week) can never
+                        // settle; once it has been tried, it doesn't block the season.
+                        let done = week.map_or(false, |s| {
+                            matches!(s.status, SettlementStatus::OnHold | SettlementStatus::Final)
+                                || (s.status == SettlementStatus::Failed && s.error.as_deref().map_or(false, |e| e.starts_with("NO_SCORES")))
+                        });
+                        require!(done, format!("Settle every week first: week {w} isn't settled yet"));
                     }
                 }
             }
@@ -159,13 +166,16 @@ impl Contract {
                 NearToken::from_yoctonear(to_outlayer),
                 GAS_OUTLAYER,
             )
-            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_SETTLE_RESULT).on_settle_result(league_id, key))
+            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_SETTLE_RESULT).on_settle_result(league_id, key, U64(now)))
             .detach();
     }
 
     /// OutLayer's answer: the job's stdout (canonical JSON), or `null` if the run failed.
     #[private]
-    pub fn on_settle_result(&mut self, league_id: u64, key: SettlementKey) {
+    pub fn on_settle_result(&mut self, league_id: u64, key: SettlementKey, request: U64) {
+        if !self.is_current(league_id, key, request, SettlementStatus::Requested) {
+            return; // a late answer to a request that was replaced
+        }
         let bytes = match env::promise_result_checked(0, MAX_RESULT_BYTES) {
             Ok(b) => b,
             Err(PromiseError::Failed) => return self.fail(league_id, key, "The enclave request failed"),
@@ -230,13 +240,22 @@ impl Contract {
                 NO_DEPOSIT,
                 GAS_VIEW,
             )
-            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_SETTLE_BALANCE).on_settle_balance(league_id, key))
+            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_SETTLE_BALANCE).on_settle_balance(league_id, key, request))
             .detach();
     }
 
     /// The pot is known: compute amounts and withholding with settle-core, then propose payouts.
     #[private]
-    pub fn on_settle_balance(&mut self, league_id: u64, key: SettlementKey, #[callback_result] balance: Result<U128, PromiseError>) {
+    pub fn on_settle_balance(
+        &mut self,
+        league_id: u64,
+        key: SettlementKey,
+        request: U64,
+        #[callback_result] balance: Result<U128, PromiseError>,
+    ) {
+        if !self.is_current(league_id, key, request, SettlementStatus::Computed) {
+            return;
+        }
         let Ok(balance) = balance else { return self.fail(league_id, key, "Couldn't read the pot's balance") };
         let league = self.league(league_id).clone();
         let teams = self.teams_of(league_id);
@@ -338,12 +357,15 @@ impl Contract {
         let idx: Vec<u8> = to_pay.iter().map(|&i| i as u8).collect();
         batch
             .unwrap()
-            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_PROPOSALS_ADDED).on_proposals_added(league_id, key, idx))
+            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_ON_PROPOSALS_ADDED).on_proposals_added(league_id, key, request, idx))
             .detach();
     }
 
     #[private]
-    pub fn on_proposals_added(&mut self, league_id: u64, key: SettlementKey, idx: Vec<u8>) {
+    pub fn on_proposals_added(&mut self, league_id: u64, key: SettlementKey, request: U64, idx: Vec<u8>) {
+        if !self.is_current(league_id, key, request, SettlementStatus::OnHold) {
+            return;
+        }
         let mut s = self.settlements.get(&key.storage_key(league_id)).cloned().unwrap();
         let mut released = 0u128;
         for (n, &i) in idx.iter().enumerate() {
@@ -381,11 +403,14 @@ impl Contract {
             env::block_timestamp() >= ends,
             format!("The hold window ends at {} (ns since epoch)", ends)
         );
+        // At most MAX_FINALIZE payouts per call keeps the callback within its gas; a bigger tie
+        // takes another `finalize`.
         let ids: Vec<u64> = s
             .payouts
             .iter()
             .filter(|p| p.status == PayoutStatus::OnHold)
             .filter_map(|p| p.proposal_id)
+            .take(MAX_FINALIZE)
             .collect();
         let vault = league.vault.clone().unwrap();
         let mut batch = Promise::new(league.token.clone()).function_call(
@@ -436,7 +461,7 @@ impl Contract {
             };
             let status = proposal["status"].as_str().and_then(ProposalStatus::parse);
             let submitted: u64 = proposal["submission_time"].as_str().and_then(|t| t.parse().ok()).unwrap_or(0);
-            let expired = submitted + PROPOSAL_PERIOD_NS < now;
+            let expired = submitted + PROPOSAL_PERIOD_NS < now + EXPIRY_MARGIN_NS;
             match status {
                 Some(ProposalStatus::Approved) => {
                     p.status = PayoutStatus::Paid; // a league majority approved it early
@@ -518,6 +543,13 @@ impl Contract {
 }
 
 impl Contract {
+    /// True if the settlement is still the one `request` started and is in `status`.
+    fn is_current(&self, league_id: u64, key: SettlementKey, request: U64, status: SettlementStatus) -> bool {
+        self.settlements
+            .get(&key.storage_key(league_id))
+            .map_or(false, |s| s.requested_at_ns == request && s.status == status)
+    }
+
     fn fail(&mut self, league_id: u64, key: SettlementKey, why: &str) {
         let k = key.storage_key(league_id);
         if let Some(mut s) = self.settlements.get(&k).cloned() {
@@ -555,7 +587,12 @@ fn check_result(out: &JobOutput, league: &League, key: SettlementKey, teams: &[T
     if out.league_ref != format!("sleeper:{}", league.sleeper_league_id) || out.season != league.season {
         return Err("it's for a different league or season".into());
     }
-    let known = |r: u16| teams.iter().any(|t| t.roster_id == r);
+    // Rosters this league doesn't list (say, a roster added on Sleeper later) are kept in the
+    // record; withholding gives their payouts "no approved account", so the money stays.
+    let _ = teams;
+    if out.scores.len() > 64 || out.payouts.len() > 32 {
+        return Err("it lists more teams than a league can have".into());
+    }
     if out.source.is_none() {
         return Err("it has no source".into());
     }
@@ -566,9 +603,6 @@ fn check_result(out: &JobOutput, league: &League, key: SettlementKey, teams: &[T
             }
             if out.placements.is_some() {
                 return Err("a weekly result has no placements".into());
-            }
-            if out.scores.iter().any(|s| !known(s.roster_id)) || out.payouts.iter().any(|p| !known(p.roster_id)) {
-                return Err("it names a roster this league doesn't have".into());
             }
             let total: u128 = out.payouts.iter().map(|p| p.amount.0).sum();
             if total > league.weekly_amount.0 {
@@ -591,7 +625,7 @@ fn check_result(out: &JobOutput, league: &League, key: SettlementKey, teams: &[T
                 return Err("it isn't a season result".into());
             }
             let placements = out.placements.as_ref().ok_or("it has no placements")?;
-            if placements.iter().any(|p| !known(p.roster_id) || p.place == 0 || p.place as usize > league.season_split_bps.len()) {
+            if placements.iter().any(|p| p.place == 0 || p.place as usize > league.season_split_bps.len()) {
                 return Err("its placements don't fit this league".into());
             }
         }

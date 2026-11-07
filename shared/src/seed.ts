@@ -98,7 +98,7 @@ export async function seedDemoLeague(o: SeedOptions): Promise<{ leagueId: number
 
   // 3. The commissioner (root) approves every claim; each team pays its dues.
   for (const t of teams) {
-    await call(o.root, o.contractId, "approve_claim", { league_id: leagueId, roster_id: t.roster_id }, TOKEN_STORAGE, 200n * TGAS);
+    await call(o.root, o.contractId, "approve_claim", { league_id: leagueId, roster_id: t.roster_id, account: t.account.accountId }, TOKEN_STORAGE, 200n * TGAS);
     await call(t.account, o.usdcId, "ft_transfer_call", {
       receiver_id: o.contractId, amount: "50000000", msg: JSON.stringify({ league_id: leagueId, roster_id: t.roster_id }),
     }, 1n, 100n * TGAS);

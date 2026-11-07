@@ -4,7 +4,7 @@ const env = import.meta.env;
 export const config = {
   network: "testnet" as const,
   rpcUrl: env.VITE_RPC_URL || "https://test.rpc.fastnear.com",
-  contractId: env.VITE_COMMISH_CONTRACT_ID || "commish.commishhq.testnet",
+  contractId: env.VITE_COMMISH_CONTRACT_ID || "commish-v2.commishhq.testnet",
   usdcId: env.VITE_USDC_ID || "usdc.commishhq.testnet",
   workerUrl: (env.VITE_WORKER_URL || "http://localhost:8787").replace(/\/$/, ""),
   rootAccountId: env.VITE_ROOT_ACCOUNT_ID || "commishhq.testnet",

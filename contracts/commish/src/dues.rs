@@ -1,10 +1,11 @@
 //! Dues: members pay with `ft_transfer_call` to this contract, `msg = {"league_id":7,"roster_id":3}`.
 //!
 //! The payment credits the team, not the payer, so paying before claim approval still counts.
-//! Up to the dues amount is accepted, forwarded to the vault in the same call chain, and
-//! the rest is returned. If the forward fails, the whole payment is returned. Either way
-//! this contract holds none of it once `ft_on_transfer` resolves. The first payment locks
-//! the rules.
+//! A payment must cover what the team still owes; the dues are forwarded to the vault in the
+//! same call chain and anything above them is returned. A smaller payment is returned whole
+//! (otherwise a 1-unit payment from anyone could lock a new league's rules). If the forward
+//! fails, the whole payment is returned. Either way this contract holds none of it once
+//! `ft_on_transfer` resolves. The first payment locks the rules.
 
 use crate::*;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
@@ -36,13 +37,13 @@ impl FungibleTokenReceiver for Contract {
             .find(|t| t.roster_id == m.roster_id)
             .unwrap_or_else(|| env::panic_str("No such team in this league"));
         let owed = league.dues.0.saturating_sub(team.dues_paid.0);
-        let accepted = owed.min(amount.0);
-        if accepted == 0 {
-            return PromiseOrValue::Value(amount); // already paid: return it all
+        if owed == 0 || amount.0 < owed {
+            // Already paid, or not enough to cover the dues: return it all.
+            return PromiseOrValue::Value(amount);
         }
+        let accepted = owed;
         team.dues_paid = U128(team.dues_paid.0 + accepted);
         self.save_teams(m.league_id, teams);
-        let was_locked = league.rules_locked;
         let l = self.league_mut(m.league_id);
         l.dues_total = U128(l.dues_total.0 + accepted);
         l.rules_locked = true;
@@ -68,7 +69,6 @@ impl FungibleTokenReceiver for Contract {
                     m.roster_id,
                     U128(accepted),
                     amount,
-                    was_locked,
                 )),
         )
     }
@@ -84,7 +84,6 @@ impl Contract {
         roster_id: u16,
         accepted: U128,
         amount: U128,
-        was_locked: bool,
     ) -> U128 {
         // `ft_transfer` returns nothing, so check the promise outcome directly.
         let forwarded = env::promise_results_count() == 1
@@ -100,8 +99,8 @@ impl Contract {
         self.save_teams(league_id, teams);
         let l = self.league_mut(league_id);
         l.dues_total = U128(l.dues_total.0.saturating_sub(accepted.0));
-        if !was_locked {
-            l.rules_locked = false;
+        if l.dues_total.0 == 0 {
+            l.rules_locked = false; // nothing was paid after all
         }
         emit("dues_refunded", json!({ "league_id": league_id, "roster_id": roster_id, "amount": accepted.0.to_string() }));
         amount

@@ -95,8 +95,17 @@ export async function call(who: Account, method: string, args: Record<string, un
 }
 
 export const claim = (who: Account, leagueId: number, rosterId: number) => call(who, "claim_team", { league_id: leagueId, roster_id: rosterId });
-export const approve = (commissioner: Account, leagueId: number, rosterId: number) =>
-  call(commissioner, "approve_claim", { league_id: leagueId, roster_id: rosterId }, TOKEN_STORAGE, 200n * TGAS);
+/** Approves the pending claim on a roster (looked up if `account` isn't given). */
+export async function approve(commissioner: Account, leagueId: number, rosterId: number, account?: string) {
+  let who = account;
+  if (!who) {
+    const teams = await view<{ roster_id: number; claim: string | { Pending: string } }[]>("get_teams", { league_id: leagueId });
+    const claim = teams.find((t) => t.roster_id === rosterId)?.claim;
+    if (!claim || typeof claim === "string") throw new Error(`roster ${rosterId} has no pending claim`);
+    who = claim.Pending;
+  }
+  return call(commissioner, "approve_claim", { league_id: leagueId, roster_id: rosterId, account: who }, TOKEN_STORAGE, 200n * TGAS);
+}
 
 export async function mint(payer: Account, to: string, amount: bigint) {
   return call(payer, "mint", { account_id: to, amount: amount.toString() }, 10_000_000_000_000_000_000_000n, 30n * TGAS, config.usdcId);

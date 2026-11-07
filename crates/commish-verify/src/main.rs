@@ -18,7 +18,7 @@ use settle_core::num::format_points_x100;
 use settle_core::{JobInput, JobOutput, Kind};
 use std::process::ExitCode;
 
-const DEFAULT_CONTRACT: &str = "commish.commishhq.testnet";
+const DEFAULT_CONTRACT: &str = "commish-v2.commishhq.testnet";
 const DEFAULT_RPC: &str = "https://rpc.testnet.near.org";
 const OUTLAYER_API: &str = "https://testnet-api.outlayer.ai";
 

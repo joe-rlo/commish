@@ -12,6 +12,7 @@ import { ordinal, SettlementStub, useNow } from "../components/Receipt";
 import * as act from "../lib/actions";
 import { useAuth, useWithSigner } from "../lib/auth";
 import { accountUrl, txUrl } from "../lib/config";
+import { rejectThreshold } from "../lib/near";
 import { teamAvatar, teamName, useConfig, useLeague, useNflState, usePot, useSettlements, useSleeper, useTeams, useVaultMembers } from "../lib/queries";
 
 export function LeaguePage({ leagueId, demo = false }: { leagueId: number; demo?: boolean }) {
@@ -75,7 +76,7 @@ function PotCard({ league, pot }: { league: League; pot: bigint | undefined }) {
           <Fact label="Token" value={league.token} href={accountUrl(league.token)} />
           <p className="text-board-dim">
             The vault is a Sputnik DAO. Commish can only propose payouts the rules compute, and approves them only after a {holdWords(league.hold_window_ns)} hold.
-            During the hold, a majority of the league (at least 2 people) can stop any payout. A majority can also vote to do anything else with the vault. The commissioner alone can't move money.
+            During the hold, a majority of the league's teams can stop any payout. The same majority can vote to do anything else with the vault. The commissioner alone can't move money.
           </p>
           {BigInt(league.on_hold_total) > 0n && <Fact label="On hold" value={dollars(league.on_hold_total)} />}
         </Details>
@@ -123,7 +124,7 @@ function Dues({ league, teams, sTeams }: { league: League; teams: Team[] | undef
 function Payouts({ league, settlements, sTeams, demo }: { league: League; settlements: Settlement[] | undefined; sTeams: TeamInfo[] | undefined; demo: boolean }) {
   const { signer } = useAuth();
   const members = useVaultMembers(league.vault);
-  const isMember = !!signer && !!members.data?.includes(signer.accountId);
+  const isMember = !!signer && !!members.data?.members.includes(signer.accountId);
   useAutoFinalize(league, settlements, demo);
   return (
     <section aria-labelledby="payouts-h" className="mt-8">
@@ -137,7 +138,9 @@ function Payouts({ league, settlements, sTeams, demo }: { league: League; settle
           {settlements.map((s) => (
             <li key={keyId(s.key)}>
               <SettlementStub s={s} leagueId={league.id} teams={sTeams} demo={demo} />
-              {s.status === "OnHold" && <HoldRow league={league} s={s} isMember={isMember} memberCount={members.data?.length ?? 0} />}
+              {s.status === "OnHold" && (
+                <HoldRow league={league} s={s} isMember={isMember} votesToStop={members.data ? rejectThreshold(members.data.members.length, members.data.quorum) : 0} />
+              )}
             </li>
           ))}
         </ul>
@@ -172,7 +175,7 @@ function useAutoFinalize(league: League, settlements: Settlement[] | undefined, 
   }, [signer, settlements, now, demo, league, qc]);
 }
 
-function HoldRow({ league, s, isMember, memberCount }: { league: League; s: Settlement; isMember: boolean; memberCount: number }) {
+function HoldRow({ league, s, isMember, votesToStop }: { league: League; s: Settlement; isMember: boolean; votesToStop: number }) {
   const { signer } = useAuth();
   const withSigner = useWithSigner();
   const qc = useQueryClient();
@@ -211,8 +214,8 @@ function HoldRow({ league, s, isMember, memberCount }: { league: League; s: Sett
     );
   }
   if (!isMember || !signer || holdable.length === 0) {
-    return memberCount > 0 ? (
-      <p className="mt-2 px-1 text-sm text-muted">League members can vote to hold this payout before the countdown ends.</p>
+    return votesToStop > 0 ? (
+      <p className="mt-2 px-1 text-sm text-muted">League members can vote to hold this payout before the countdown ends. It takes {votesToStop} votes.</p>
     ) : null;
   }
   return (
@@ -237,7 +240,7 @@ function HoldRow({ league, s, isMember, memberCount }: { league: League; s: Sett
       >
         {busy ? <Spinner label="Voting" /> : "Hold this payout"}
       </button>
-      <span className="text-sm text-muted">It takes a majority of {memberCount} league members.</span>
+      <span className="text-sm text-muted">It takes {votesToStop} votes to stop it.</span>
       <ErrorNote error={error} />
     </div>
   );
@@ -402,7 +405,7 @@ function CommissionerPanel({ league, teams, sTeams }: { league: League; teams: T
                 <p className="truncate font-bold">{teamName(sTeams, t.roster_id)}</p>
                 <p className="mono truncate text-muted">{claimant(t)}</p>
               </div>
-              <button type="button" className="btn btn-money" disabled={busy !== null} onClick={() => run(t.roster_id, () => act.approve(signer!, league.id, t.roster_id))}>
+              <button type="button" className="btn btn-money" disabled={busy !== null} onClick={() => run(t.roster_id, () => act.approve(signer!, league.id, t.roster_id, claimant(t)!))}>
                 {busy === t.roster_id ? <Spinner /> : "Approve"}
               </button>
               <button type="button" className="btn btn-ghost" disabled={busy !== null} onClick={() => run(t.roster_id, () => act.decline(signer!, league.id, t.roster_id))}>

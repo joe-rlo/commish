@@ -1,9 +1,14 @@
 // Reads from NEAR testnet (no wallet needed).
-import { JsonRpcProvider } from "near-api-js";
+import { FailoverRpcProvider, JsonRpcProvider } from "near-api-js";
 import type { Config, Key, League, Settlement, Team } from "@commish/shared";
 import { config } from "./config";
 
-export const provider = new JsonRpcProvider({ url: config.rpcUrl });
+// Two public testnet RPCs: if one times out, the next answers.
+export const provider = new FailoverRpcProvider(
+  [...new Set([config.rpcUrl, "https://test.rpc.fastnear.com", "https://rpc.testnet.near.org"])].map(
+    (url) => new JsonRpcProvider({ url }, { retries: 2, backoff: 1.5, wait: 400 }),
+  ),
+);
 
 export async function view<T>(contractId: string, method: string, args: Record<string, unknown> = {}): Promise<T> {
   return (await provider.callFunction({ contractId, method, args })) as T;
@@ -46,7 +51,7 @@ export async function accountExists(accountId: string): Promise<boolean> {
 }
 
 export interface VaultPolicy {
-  roles: { name: string; kind: { Group?: string[] } | string; permissions: string[] }[];
+  roles: { name: string; kind: { Group?: string[] } | string; permissions: string[]; vote_policy: Record<string, { quorum: string }> }[];
 }
 export interface VaultProposal {
   id: number;
@@ -62,13 +67,16 @@ export const vault = {
   proposal: (vaultId: string, id: number) => view<VaultProposal>(vaultId, "get_proposal", { id }),
 };
 
-/** Members of the vault's `league` role (they can vote to stop a payout). */
-export function leagueMembers(p: VaultPolicy): string[] {
+/** Members of the vault's `league` role (they can vote to stop a payout) and its quorum. */
+export function leagueMembers(p: VaultPolicy): { members: string[]; quorum: number } {
   const role = p.roles.find((r) => r.name === "league");
-  return role && typeof role.kind === "object" && role.kind.Group ? role.kind.Group : [];
+  const members = role && typeof role.kind === "object" && role.kind.Group ? role.kind.Group : [];
+  const quorum = Number(role?.vote_policy?.transfer?.quorum ?? "2");
+  return { members, quorum };
 }
 
-/** Votes needed to stop a payout: a majority, and at least 2 (the vault's quorum). */
-export function rejectThreshold(members: number): number {
-  return Math.max(2, Math.min(Math.floor(members / 2) + 1, members));
+/** Votes needed to stop a payout: Sputnik's max(quorum, min(members / 2 + 1, members)).
+ *  The quorum is a majority of the league's teams, set when the vault was created. */
+export function rejectThreshold(members: number, quorum: number): number {
+  return Math.max(quorum, Math.min(Math.floor(members / 2) + 1, members));
 }
