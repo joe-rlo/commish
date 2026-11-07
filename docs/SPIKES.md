@@ -93,4 +93,14 @@ Circle testnet USDC: not tried. The spec calls it a nice-to-have, and depending 
 
 ## S5. Wallet and quick accounts
 
-_Filled in below._
+**Connector:** the near-dapp agent skill (github.com/near/agent-skills, read directly because `npx skills add` was blocked in this environment) recommends `@hot-labs/near-connect` (+ `near-connect-hooks`) with near-api-js v7. The web app uses `NearConnector` directly (network `testnet`), loaded only when someone picks "Use a NEAR wallet".
+
+**Quick accounts:** the browser generates an ed25519 key and sends only the public key; the Worker (`POST /accounts`) creates `<name>.commishhq.testnet` with that key and 0.5 NEAR. Ran `cli/src/spikes/s5-quick-account.ts` against the local Worker: account [8FmjGza9…](https://testnet.nearblocks.io/txns/8FmjGza9sY4c3s4oPWfwkxk5MggKfWCYdgRS5JqLSkc4), duplicate name refused (409), faucet mint [3Ysu8wsW…](https://testnet.nearblocks.io/txns/3Ysu8wsWiLhbmzHZqRvisys6DHubDN2F3hvmBYKo57ZT), then the new account signed `claim_team` [EBCzj2ks…](https://testnet.nearblocks.io/txns/EBCzj2ksFRZpzKHRTWGX9jE1BXtD6LdRpMvWLW2QhnVm) and a USDC `ft_transfer_call` for $50 dues [7LXnRBMS…](https://testnet.nearblocks.io/txns/7LXnRBMSh6eNttLjgqdvDP3mpC7vn6rJhfGF3oKaSwna) (all $50 accepted).
+
+**In the browser** (headless Chromium, `web/scripts/*.mjs`, against testnet): join from an invite link, sign in with a quick account, claim, get test USDC, pay: "You're in." in 19 s. Demo flow: sign in, settle week 3, On hold 0:58, Paid at 84 s, Check the math: Matches ✓. Create a league as a new quick account (Worker sponsors the vault deposit) in 16.5 s; the commissioner approves a claim from the league page and the member sees it within 15 s.
+
+**Decision.** **Pass.** Quick accounts (full-access key in the browser, Export in the account sheet) plus near-connect for wallets.
+
+## Day-0 summary
+
+All five spikes pass. No fallback (escrow or keeper) needed. Gates G1 (dues land in a vault on testnet) and G2 (a real finished week pays the winner on testnet with an attestation) passed on Day 0; see S1 and S2b.

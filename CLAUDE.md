@@ -39,11 +39,22 @@ Commish holds a fantasy league's dues in the league's own Sputnik DAO vault and 
 Fill these in as they come to exist. Keep this section current.
 
 ```
-pnpm i                 # install
-cargo test             # settle-core + contract tests
-pnpm test              # TypeScript tests
-pnpm commish verify    # recompute a settlement from public data
-pnpm e2e               # end-to-end on testnet
+pnpm i                                   # install
+cargo test                               # settle-core, contract sandbox tests (real Sputnik + OutLayer bytes), Test USDC
+pnpm test                                # TypeScript tests (shared, worker, web, cli)
+pnpm typecheck                           # tsc for every package
+pnpm commish verify --sleeper <id> --week 3          # recompute a week from public data (no keys)
+pnpm commish verify --settlement <league>:w3         # check a testnet settlement + its attestation
+pnpm commish status --league <n>                     # league, teams, settlements
+pnpm commish create|settle|finalize|claim|approve|pay|mint   # see --help; signer = root unless --as
+pnpm commish deploy --job-url <fastfs> --job-sha256 <hex>   # deploy contracts (testnet)
+pnpm commish demo-seed                               # fresh demo league (spends ~7.5 testnet NEAR)
+pnpm e2e                                 # end to end on testnet (spends ~7.5 testnet NEAR)
+pnpm fixtures                            # rebuild fixtures/cases from fixtures/sleeper
+pnpm --filter @commish/web dev           # web app on :5173
+cd worker && pnpm exec wrangler dev      # Worker on :8787 (needs worker/.dev.vars)
+node web/scripts/judge-flow.mjs | join-flow.mjs | create-flow.mjs   # browser flows vs testnet
+cargo build --release -p outlayer-job --target wasm32-wasip2         # the enclave job (hash must match the pinned one)
 ```
 
 ## Conventions

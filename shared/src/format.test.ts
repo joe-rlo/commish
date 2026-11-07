@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countdown, dollars, holdWords, parseDollars, points, splitWords } from "./format.js";
+import { countdown, dollars, holdWords, money, parseDollars, points, splitWords } from "./format.js";
 import { keyId, parseKeyId } from "./contract.js";
 import { parseLeagueInput, standings, teamsFrom } from "./sleeper.js";
 
@@ -11,6 +11,10 @@ describe("format", () => {
     expect(dollars(1_666_666n)).toBe("$1.67");
     expect(dollars(0)).toBe("$0.00");
     expect(dollars(50_000_000n, { cents: false })).toBe("$50");
+  });
+  it("money drops whole cents", () => {
+    expect(money(600_000_000n)).toBe("$600");
+    expect(money(5_500_000n)).toBe("$5.50");
   });
   it("parseDollars", () => {
     expect(parseDollars("50")).toBe(50_000_000n);

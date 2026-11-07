@@ -36,7 +36,11 @@ interface Stored {
 function readStored(): Stored | null {
   try {
     const raw = localStorage.getItem(STORE);
-    return raw ? (JSON.parse(raw) as Stored) : null;
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<Stored>;
+    // Ignore anything that isn't a complete record rather than crash on it.
+    if (typeof v.accountId !== "string" || !v.accountId || typeof v.secretKey !== "string" || !v.secretKey.startsWith("ed25519:")) return null;
+    return { accountId: v.accountId, secretKey: v.secretKey };
   } catch {
     return null;
   }

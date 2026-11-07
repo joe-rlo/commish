@@ -1,7 +1,7 @@
 // Create a league (SPEC 5.2): find it on Sleeper, set the rules, create the vault, share the invite.
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { avatarUrl, createDeposit, dollars, loadLeague, parseDollars, parseLeagueInput, splitWords } from "@commish/shared";
+import { avatarUrl, createDeposit, dollars, loadLeague, money, parseDollars, parseLeagueInput, splitWords } from "@commish/shared";
 import { Avatar, ErrorNote, Spinner } from "../components/bits";
 import * as act from "../lib/actions";
 import { useAuth, useWithSigner, type Signer } from "../lib/auth";
@@ -236,8 +236,8 @@ function Rules({ found, onCreated }: { found: Found; onCreated: (c: { leagueId: 
 
       <div className="board p-4">
         <p className="tnum text-board-ink">
-          {n} teams × {dollars(duesU ?? 0n, { cents: false })} = <b className="text-lamp">{dollars(pot)}</b> pot
-          {weeklyU ? ` · ${dollars(weeklyTotal)} in weekly payouts (${dollars(weeklyU)} × ${rsw} regular-season weeks)` : ""} · {dollars(rest)} split {splitWords(split.map((x) => x * 100))} at season's end.
+          {n} teams × {money(duesU ?? 0n)} = <b className="text-lamp">{money(pot)}</b> pot
+          {weeklyU ? ` · ${money(weeklyTotal)} in weekly payouts (${money(weeklyU)} × ${rsw} regular-season weeks)` : ""} · {money(rest)} split {splitWords(split.map((x) => x * 100))} at season's end.
         </p>
       </div>
       <p className="text-sm text-muted">Rules lock once the first team pays.</p>

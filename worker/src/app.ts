@@ -25,6 +25,8 @@ export interface Deps {
   quote(body: Record<string, unknown>): Promise<{ status: number; body: unknown }>;
   seedDemo?(log: (l: string) => void): Promise<{ leagueId: number }>;
   rate: RateStore;
+  /** Multiplies every limit; 1 in production. Local dev may raise it in .dev.vars. */
+  rateScale?: number;
   adminToken?: string;
   now(): number;
 }
@@ -48,7 +50,7 @@ const fail = (status: number, error: string) => json({ error }, status);
 async function limit(d: Deps, bucket: string, who: string, max: number, windowSeconds: number): Promise<Response | null> {
   const window = Math.floor(d.now() / 1000 / windowSeconds);
   const n = await d.rate.incr(`rl:${bucket}:${who}:${window}`, windowSeconds + 60);
-  return n > max ? fail(429, "Too many requests. Try again later.") : null;
+  return n > max * Math.max(1, Math.floor(d.rateScale ?? 1)) ? fail(429, "Too many requests. Try again later.") : null;
 }
 
 async function body(req: Request): Promise<Record<string, unknown> | null> {

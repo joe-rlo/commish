@@ -1,0 +1,9 @@
+# Copy to .dev.vars (gitignored) for `wrangler dev`. Names only here; never commit values.
+# Private key of DEMO_ROOT_ACCOUNT_ID (wrangler.toml). It creates quick accounts and mints Test USDC.
+DEMO_ROOT_PRIVATE_KEY=
+# Bearer token for POST /demo/reset.
+ADMIN_TOKEN=
+# Optional 1Click partner JWT (lower fees on quotes).
+ONECLICK_JWT=
+# Local dev only: multiplies every rate limit (all local requests share one IP).
+RATE_LIMIT_SCALE=50

@@ -26,7 +26,7 @@ try {
   await page.getByRole("dialog", { name: "Sign in" }).waitFor();
   const name = `judge${Date.now().toString(36).slice(-6)}`;
   await page.getByLabel("Quick account").fill(name);
-  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   log(`signing in as ${name}`);
   // After sign-in the settle runs automatically.
   await page.getByRole("link", { name: `Week ${week} high score receipt` }).waitFor({ timeout: 90_000 });

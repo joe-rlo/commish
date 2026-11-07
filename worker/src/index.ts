@@ -14,6 +14,8 @@ export interface Env {
   DEMO_ROOT_PRIVATE_KEY: string;
   ADMIN_TOKEN?: string;
   ONECLICK_JWT?: string;
+  /** Local dev only (worker/.dev.vars): multiplies rate limits. Unset in production. */
+  RATE_LIMIT_SCALE?: string;
   RATE: KVNamespace;
 }
 
@@ -87,6 +89,7 @@ function deps(env: Env): Deps {
         return n;
       },
     },
+    rateScale: Number(env.RATE_LIMIT_SCALE ?? "1") || 1,
     adminToken: env.ADMIN_TOKEN,
     now: () => Date.now(),
   };

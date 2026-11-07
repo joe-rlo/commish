@@ -2,6 +2,13 @@
 
 One line each, newest first: date · decision · why.
 
+- 2026-11-07 · Worker adds `POST /sponsor` (not in the spec): sends one vault deposit to a quick account that creates a league; 1 per IP and 3 total per day · a vault costs ~5.4 testnet NEAR and quick accounts get 0.5, so "Start a league" would otherwise dead-end for a judge
+- 2026-11-07 · The Worker signs only account creation, faucet mints, sponsorship, and (admin-only) demo seeding · the demo reset needs 12 team accounts to claim and pay; their keys are made and dropped during the reset
+- 2026-11-07 · Demo seeding pre-settles weeks 1–2 · the feed shows real Paid receipts a judge can open and check before pressing anything
+- 2026-11-07 · Payouts are released by any signed-in viewer once the hold ends (demo: any viewer; real leagues: members) · `finalize` is permissionless, and the Worker must not sign settlements
+- 2026-11-07 · Season projection on the league page reserves unsettled weekly prizes · matches the season-after-weeks rule and the create-screen summary
+- 2026-11-07 · 1Click preview quotes credit a placeholder Intents balance (`recipientType: INTENTS`) · testnet accounts don't exist on mainnet and DESTINATION_CHAIN quotes to a missing account fail
+- 2026-11-07 · NearBlocks isn't used for receipts · its v1 API was retired 2026-11-05; the receipt takes the request tx from OutLayer's attestation and payout status from the vault
 - 2026-11-07 · Season settles only after every regular-season week has settled (when weekly payouts are on) · the spec's base (vault balance minus payouts on hold) would otherwise let an early season payout eat unsettled weekly prizes; ordering keeps the "$70 weekly · $530 split" promise. Flagged to Joe
 - 2026-11-07 · `league` role votes need quorum 2 on top of majority · without it a league whose only member is the commissioner lets the commissioner pass a transfer alone (dues can arrive before claims are approved)
 - 2026-11-07 · `finalize` re-reads the pot and registers the winner with the token before approving · testnet's Sputnik DAO (v2.0.0 era) marks a proposal Approved even when its transfer fails, so the contract makes failure impossible instead of detecting it

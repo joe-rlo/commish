@@ -11,6 +11,12 @@ export function dollars(units: string | bigint | number, opts: { cents?: boolean
   return `${neg ? "−" : ""}$${whole}${opts.cents === false ? "" : `.${frac}`}`;
 }
 
+/** Like `dollars`, but whole amounts drop the cents: "$600", "$5.50". */
+export function money(units: string | bigint | number): string {
+  const d = dollars(units);
+  return d.endsWith(".00") ? d.slice(0, -3) : d;
+}
+
 /** "$50" / "50.25" → units. Returns null for anything that isn't a plain amount. */
 export function parseDollars(s: string): bigint | null {
   const m = s.trim().replace(/^\$/, "").replace(/,/g, "").match(/^(\d{1,9})(?:\.(\d{0,2}))?$/);

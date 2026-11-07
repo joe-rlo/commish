@@ -52,6 +52,11 @@ describe("POST /accounts", () => {
     expect((await handle(post("/accounts", { name: "taken", public_key: PK }), d, "9.9.9.9")).status).toBe(409);
     expect(d.calls).toEqual([]);
   });
+  it("a local rate scale raises every limit", async () => {
+    const d = fakeDeps({ rateScale: 2 });
+    for (let i = 0; i < 6; i++) expect((await handle(post("/accounts", { name: `ok${i}`, public_key: PK }), d, "4.4.4.4")).status).toBe(200);
+    expect((await handle(post("/accounts", { name: "ok9", public_key: PK }), d, "4.4.4.4")).status).toBe(429);
+  });
   it("allows 3 per IP per hour", async () => {
     const d = fakeDeps();
     for (let i = 0; i < 3; i++) expect((await handle(post("/accounts", { name: `ok${i}`, public_key: PK }), d, "2.2.2.2")).status).toBe(200);
