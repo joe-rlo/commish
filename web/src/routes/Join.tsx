@@ -48,6 +48,9 @@ function TeamPicker({ teams, sTeams, league, picked, onPick }: { teams: Team[]; 
   return (
     <section aria-labelledby="pick-h" className="mt-8">
       <h2 id="pick-h" className="display text-3xl">Which team is yours?</h2>
+      {teams.every((t) => t.claim !== "Unclaimed") && (
+        <p className="mt-1 text-muted">Every team in this league is claimed. If one of them is yours, ask the commissioner.</p>
+      )}
       <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {teams.map((t) => {
           const taken = t.claim !== "Unclaimed";
