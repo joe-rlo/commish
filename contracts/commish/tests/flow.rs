@@ -494,3 +494,57 @@ async fn the_commissioner_has_no_method_that_moves_money() {
     assert_eq!(env.usdc_balance(c.id()).await, 0);
     assert_eq!(env.league(id).await["weekly_amount"], (5 * USDC).to_string(), "rules stayed locked");
 }
+
+#[tokio::test]
+async fn a_league_vote_can_reassign_a_team() {
+    use near_workspaces::types::Gas;
+    let env = Env::new().await;
+    let (id, vault) = env.create_league(&ALL, json!({})).await;
+    let a = env.member("alice", 0).await;
+    let b = env.member("bob", 0).await;
+    let c = env.member("carol", 0).await;
+    env.claim_and_approve(&a, id, 2).await;
+    env.claim_and_approve(&b, id, 3).await;
+    // League role: commissioner, alice, bob → 2 votes pass. Move roster 2 from alice to carol.
+    let args = json!({ "league_id": id, "roster_id": 2, "account": c.id() }).to_string();
+    use near_sdk::base64::Engine;
+    let b64 = near_sdk::base64::engine::general_purpose::STANDARD.encode(args);
+    let kind = json!({ "FunctionCall": { "receiver_id": env.commish.id(), "actions": [{
+        "method_name": "reassign_team", "args": b64, "deposit": "1250000000000000000000", "gas": "200000000000000"
+    }] } });
+    let r = a
+        .call(&vault, "add_proposal")
+        .args_json(json!({ "proposal": { "description": "move roster 2 to carol", "kind": kind } }))
+        .transact()
+        .await
+        .unwrap();
+    check(&r, "add_proposal");
+    let pid: u64 = r.json().unwrap();
+    for m in [&a, &b] {
+        check(
+            &m.call(&vault, "act_proposal")
+                .args_json(json!({ "id": pid, "action": "VoteApprove", "proposal": kind }))
+                .gas(Gas::from_tgas(300))
+                .transact()
+                .await
+                .unwrap(),
+            "vote",
+        );
+    }
+    assert_eq!(env.proposal(&vault, pid).await["status"], "Approved");
+    // The membership proposals land a few blocks later.
+    let mut group = json!([]);
+    for _ in 0..20 {
+        group = env.vault_policy(&vault).await["roles"][1]["kind"]["Group"].clone();
+        if group.as_array().unwrap().contains(&json!(c.id())) && !group.as_array().unwrap().contains(&json!(a.id())) {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    }
+    let team = &env.teams(id).await[1];
+    assert_eq!(team["account"], json!(c.id()), "roster 2 now pays carol");
+    assert!(group.as_array().unwrap().contains(&json!(c.id())), "carol joined the league role: {group}");
+    assert!(!group.as_array().unwrap().contains(&json!(a.id())), "alice left the league role: {group}");
+    let reg: Value = env.token.view("storage_balance_of").args_json(json!({ "account_id": c.id() })).await.unwrap().json().unwrap();
+    assert!(!reg.is_null(), "carol is registered with the token");
+}

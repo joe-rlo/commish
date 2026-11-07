@@ -27,7 +27,7 @@ Prerequisites: Node 22+, pnpm 10, Rust stable with `wasm32-unknown-unknown` and 
 
 ```sh
 pnpm i
-cargo test         # 57 Rust tests (~2 min; the contract tests start a local NEAR sandbox)
+cargo test         # 58 Rust tests (~2 min; the contract tests start a local NEAR sandbox)
 pnpm test          # 69 TypeScript tests
 ```
 
@@ -101,7 +101,7 @@ Reading leagues, receipts and **Check the math** need nothing else. Signing (set
 | --- | --- | --- |
 | Sleeper's API | The scores | Public; anyone can fetch the same URLs. Receipts list them with the SHA-256 of their data |
 | OutLayer and Intel TDX | Running the pinned settle-core build honestly | Attestation per run (code, input and output hashes, TDX quote); the contract requests only the pinned wasm hash |
-| The commish contract | Only paying what the rules compute | Open source, 16 sandbox tests against the real Sputnik and OutLayer contract bytes, invariants below |
+| The commish contract | Only paying what the rules compute | Open source, 17 sandbox tests against the real Sputnik and OutLayer contract bytes, invariants below |
 | Your league's majority | Overrides | The vault policy; visible to everyone with `get_policy` on the vault |
 
 Not trusted: the commissioner, the Commish team, the web app, the Worker. The web app could lie about scores; that's why "Check the math" and `commish verify` exist.
@@ -160,10 +160,10 @@ Evidence from the Day-0 spikes, with transaction links: [docs/SPIKES.md](docs/SP
 | Command | What |
 | --- | --- |
 | `cargo test -p settle-core` | 35 tests: RFC 8785 numbers (incl. RFC Appendix B vectors), points rounding, finality, and 27 fixture cases built in JavaScript (ties, dust, custom_points, missing roster, past the regular season, not final, bracket with and without a 3rd-place game) |
-| `cargo test -p commish` | 16 sandbox tests with the exact `sputnik-v2.testnet` and `outlayer.testnet` bytes; the test plays OutLayer's worker with the real job on recorded Sleeper data |
+| `cargo test -p commish` | 17 sandbox tests with the exact `sputnik-v2.testnet` and `outlayer.testnet` bytes; the test plays OutLayer's worker with the real job on recorded Sleeper data |
 | `pnpm test` | settle-core in wasm on every fixture plus a real testnet result byte for byte; Worker rules; UI state logic |
 | `pnpm e2e` | the full flow on testnet (above) |
-| `node web/scripts/judge-flow.mjs`, `join-flow.mjs`, `create-flow.mjs` | the README flows in headless Chromium against testnet |
+| `node web/scripts/judge-flow.mjs`, `join-flow.mjs`, `create-flow.mjs`, `hold-flow.mjs` | the README flows in headless Chromium against testnet, including a member holding a payout and the wallet selector |
 
 ## Known limits
 
