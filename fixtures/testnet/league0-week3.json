@@ -1,0 +1,14 @@
+{
+  "description": "League 0 week 3 on commish.commishhq.testnet, settled by OutLayer request 12278. The browser build must reproduce result_sha256 byte for byte.",
+  "contract": "commish.commishhq.testnet",
+  "league_id": 0,
+  "key": {
+    "Week": 3
+  },
+  "input_text": "{\"sleeper_league_id\":\"1197787383500648448\",\"season\":\"2025\",\"kind\":\"weekly_high_score\",\"week\":3,\"rules\":{\"weekly_amount\":\"5000000\",\"regular_season_weeks\":14,\"season_split_bps\":[6000,2500,1500]},\"now_ns\":\"1794068958041415688\"}",
+  "input_sha256": "565a1b579b62a030bd9f232d6fa9de5666562771a9d8cb418ceb025703eaed06",
+  "request_id": "12278",
+  "result_sha256": "e3965d0fb5c83bbf5e062cc6b761acad6730586c9bc5ed1c9476cc78244ecf46",
+  "source_sha256": "ab52bb89a4f3fa20e27f929aa67ca3980d858c5087828307d0c84a35ad633abf",
+  "attestation": "https://testnet-api.outlayer.ai/attestations/by-request/12278"
+}

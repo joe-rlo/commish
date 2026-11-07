@@ -469,7 +469,14 @@ dependencies = [
 
 [[package]]
 name = "commish-verify"
-version = "0.1.0"
+version = "1.0.0"
+dependencies = [
+ "base64 0.22.1",
+ "outlayer-job",
+ "serde_json",
+ "settle-core",
+ "ureq",
+]
 
 [[package]]
 name = "const-oid"
@@ -3579,7 +3586,11 @@ dependencies = [
 
 [[package]]
 name = "settle-wasm"
-version = "0.1.0"
+version = "1.0.0"
+dependencies = [
+ "serde_json",
+ "settle-core",
+]
 
 [[package]]
 name = "sha2"

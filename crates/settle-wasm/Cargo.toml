@@ -1,7 +1,14 @@
 [package]
 name = "settle-wasm"
-version = "0.1.0"
-edition = "2021"
+version = "1.0.0"
+edition.workspace = true
+license.workspace = true
 publish = false
+description = "settle-core for the browser (wasm32-unknown-unknown, no imports): one JSON-in, JSON-out export."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+settle-core = { path = "../settle-core" }
+serde_json = { workspace = true }

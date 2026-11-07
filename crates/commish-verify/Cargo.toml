@@ -1,7 +1,18 @@
 [package]
 name = "commish-verify"
-version = "0.1.0"
-edition = "2021"
+version = "1.0.0"
+edition.workspace = true
+license.workspace = true
 publish = false
+description = "Recomputes a Commish settlement from public Sleeper data with settle-core, natively, and compares it with what's on chain. No keys."
+
+[[bin]]
+name = "commish-verify"
+path = "src/main.rs"
 
 [dependencies]
+settle-core = { path = "../settle-core" }
+outlayer-job = { path = "../outlayer-job" }
+serde_json = { workspace = true }
+ureq = { version = "3.1", default-features = false, features = ["rustls", "json"] }
+base64 = "0.22"
