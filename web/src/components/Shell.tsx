@@ -32,10 +32,10 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="border-t border-line py-6 text-sm text-muted">
-        <nav className="flex flex-wrap gap-x-5 gap-y-2">
-          <NavLink to="/how" className="underline-offset-4 hover:underline">How it works</NavLink>
-          <NavLink to="/demo" className="underline-offset-4 hover:underline">Demo league</NavLink>
-          <NavLink to="/new" className="underline-offset-4 hover:underline">Start a league</NavLink>
+        <nav className="flex flex-wrap gap-x-5">
+          <NavLink to="/how" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">How it works</NavLink>
+          <NavLink to="/demo" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Demo league</NavLink>
+          <NavLink to="/new" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Start a league</NavLink>
         </nav>
         <p className="mt-3 max-w-prose">
           A NEAR testnet demo built at NEAR HACKATHON. Test money only. Paid fantasy is regulated differently by state and country.

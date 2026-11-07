@@ -58,10 +58,13 @@ function Find({ found, onFound }: { found: Found | null; onFound: (f: Found | nu
   return (
     <section aria-labelledby="find-h" className="mt-6">
       <h2 id="find-h" className="display text-3xl">Find your league</h2>
-      <form className="mt-3 flex gap-2" onSubmit={(e) => (e.preventDefault(), submit())}>
-        <label htmlFor="league-link" className="sr-only">Paste your Sleeper league link or ID</label>
-        <input id="league-link" className="field" placeholder="Paste your Sleeper league link or ID" value={text} onChange={(e) => setText(e.target.value)} autoComplete="off" />
-        <button type="submit" className="btn btn-ink" disabled={busy || !text.trim()}>{busy ? <Spinner /> : "Find"}</button>
+      <form className="mt-3" onSubmit={(e) => (e.preventDefault(), submit())}>
+        <label htmlFor="league-link" className="font-bold">Paste your Sleeper league link or ID</label>
+        <p className="text-sm text-muted">Open your league on sleeper.com and copy the address bar.</p>
+        <div className="mt-2 flex gap-2">
+          <input id="league-link" className="field" placeholder="sleeper.com/leagues/…" value={text} onChange={(e) => setText(e.target.value)} autoComplete="off" inputMode="url" />
+          <button type="submit" className="btn btn-ink" disabled={busy || !text.trim()}>{busy ? <Spinner /> : "Find"}</button>
+        </div>
       </form>
       {error && (
         <div className="mt-3">
