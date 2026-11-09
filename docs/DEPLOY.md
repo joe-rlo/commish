@@ -69,7 +69,7 @@ Run the four README steps on a real phone against https://commish-2o8.pages.dev/
   >
   > Each payout's math runs inside an attested TEE (OutLayer), waits out a hold window the league can veto, then pays from a Sputnik DAO. Anyone can press "Check the math".
   >
-  > Built at NEAR HACKATHON. Try the demo league: <url> · code: <repo>
+  > Built at NEAR HACKATHON. Try the demo league: https://commish-2o8.pages.dev/demo · code: https://github.com/joe-rlo/commish
   > What would make you trust a league pot you can't see? #NEARHackathon
 
 - Submission "What they built" draft (≤ 2000 chars):
