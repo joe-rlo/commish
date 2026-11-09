@@ -55,6 +55,9 @@ pnpm --filter @commish/web dev           # web app on :5173
 cd worker && pnpm exec wrangler dev      # Worker on :8787 (needs worker/.dev.vars)
 node web/scripts/judge-flow.mjs | join-flow.mjs | create-flow.mjs   # browser flows vs testnet
 ./scripts/build-job.sh                   # reproducible enclave job build; prints the sha256 the contract pins
+# Production (Joe's yes first; details in docs/DEPLOY.md): web https://commish-2o8.pages.dev, Worker https://commish-worker.joe-253.workers.dev
+cd worker && pnpm exec wrangler deploy  # Worker
+VITE_WORKER_URL=https://commish-worker.joe-253.workers.dev pnpm --filter @commish/web build && cd web && ../worker/node_modules/.bin/wrangler pages deploy dist --project-name commish --branch main
 ```
 
 ## Conventions

@@ -3,37 +3,43 @@
 Nothing here runs without Joe's go-ahead (CLAUDE.md: deploying the Worker or web app, pushing,
 making the repo public, posting and submitting all need a yes first).
 
-## 1. Worker (Cloudflare)
+## Live (deployed 2026-11-09)
 
-Wrangler is a dependency of the `worker` package only, so every command below runs from the
-repo root through `pnpm --filter @commish/worker exec`, which runs it inside `worker/`.
+- Web app (Cloudflare Pages, project `commish`): https://commish-2o8.pages.dev
+- Worker: https://commish-worker.joe-253.workers.dev (`/health` → `{"ok":true}`)
+- KV namespace `RATE`: id in `worker/wrangler.toml`. Secrets set: `DEMO_ROOT_PRIVATE_KEY`, `ADMIN_TOKEN`
+  (its value is `ADMIN_TOKEN_PROD` in the gitignored `.env`). `ONECLICK_JWT` is not set; quotes work without it.
+- `ALLOWED_ORIGINS` is the Pages URL only; local `wrangler dev` overrides it with `*` from `.dev.vars`.
 
-```sh
-W="pnpm --filter @commish/worker exec wrangler"
-$W whoami                                     # already logged in? if not: $W login (Joe, interactive)
-$W kv namespace create RATE                   # put the printed id in worker/wrangler.toml [[kv_namespaces]]
-$W secret put DEMO_ROOT_PRIVATE_KEY           # private key of commishhq.testnet (prompted, never echoed)
-$W secret put ADMIN_TOKEN                     # any long random string
-$W secret put ONECLICK_JWT                    # optional
-# set ALLOWED_ORIGINS in worker/wrangler.toml to the Pages URL from step 2, then:
-$W deploy
-curl -s https://commish-worker.<subdomain>.workers.dev/health   # {"ok":true}
-```
+## 1. Redeploy the Worker
 
-Do not set `RATE_LIMIT_SCALE` in production.
-
-## 2. Web app (Cloudflare Pages)
+Wrangler is a dependency of the `worker` package only. Run Worker commands from `worker/`
+(or the repo root with `pnpm --filter @commish/worker exec wrangler …`).
 
 ```sh
-$W pages project create commish --production-branch main   # do this first: it prints the Pages URL for ALLOWED_ORIGINS
-VITE_WORKER_URL=https://commish-worker.<subdomain>.workers.dev pnpm --filter @commish/web build
-$W pages deploy ../web/dist --project-name commish --branch main   # path is relative to worker/
+cd worker
+pnpm exec wrangler whoami                     # logged in? if not: pnpm exec wrangler login (Joe, interactive)
+pnpm exec wrangler deploy                     # secrets persist across deploys
+curl -s https://commish-worker.joe-253.workers.dev/health
 ```
 
-`--branch main` makes it the production deployment. Without it, wrangler uses the current git
-branch (`build/day0`) and publishes a preview URL instead.
+To set a secret without it touching the shell history, pipe it: `… | pnpm exec wrangler secret put NAME`.
+Never set `RATE_LIMIT_SCALE` in production.
 
-`web/public/_redirects` sends every path to `index.html`, so `/demo` and `/l/1/r/w1` load directly.
+## 2. Redeploy the web app
+
+Run Pages commands from `web/`, which has no `wrangler.toml`. From `worker/`, wrangler reads the
+Worker's config and tries to deploy the Worker under the Pages project's name.
+
+```sh
+VITE_WORKER_URL=https://commish-worker.joe-253.workers.dev pnpm --filter @commish/web build
+cd web && ../worker/node_modules/.bin/wrangler pages deploy dist --project-name commish --branch main
+```
+
+`--branch main` makes it the production deployment; without it wrangler uses the current git
+branch and publishes a preview URL. Wrangler 4.152 routes `pages project create` to the new
+Workers-based Pages and fails without a config; the project was created once with `--force`
+(classic Pages). Don't pass `--force` again.
 
 ## 3. Fresh demo league before judging
 
@@ -44,15 +50,15 @@ pnpm commish demo-seed        # ~7.5 testnet NEAR; /demo switches to the new lea
 Then run the README flow against the hosted URL:
 
 ```sh
-node web/scripts/judge-flow.mjs https://<pages-url> 3
+node web/scripts/judge-flow.mjs https://commish-2o8.pages.dev 3   # 3 = an open week
 ```
 
 Keep the root topped up: each quick account takes 0.5 NEAR, each sponsored league ~5.8.
 `pnpm commish status --league <n>` and the explorer show balances.
 
-## 4. Update the README
+## 4. Check on a phone
 
-Replace "Hosted demo: not deployed yet" with the Pages URL, and run the four README steps on a phone.
+Run the four README steps on a real phone against https://commish-2o8.pages.dev/demo.
 
 ## 5. Repo public, X post, submission (Joe)
 

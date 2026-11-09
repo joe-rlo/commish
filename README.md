@@ -12,14 +12,14 @@ About 57 million adults in the US and Canada play fantasy sports ([FSGA, 2025](h
 
 ## Try it in 2 minutes
 
-**Hosted demo:** not deployed yet (the deploy waits for the owner's go-ahead). Until then, run the web app locally (below); the demo league and every receipt are live on testnet either way.
+**Hosted demo:** https://commish-2o8.pages.dev/demo (testnet, test money only).
 
 1. Open `/demo`. You see the Armchair Football League (a real, completed 2025 Sleeper league): 12 teams, 12 of 12 paid, the pot as a scoreboard, and a payouts feed of receipts.
-2. Press **Settle week 3** (any open week works). Sign in with a quick account: type a name, press Create. No seed phrase; the key stays in your browser. A "Week 3 high score" receipt appears with a spinner while the enclave works, then **On hold 0:59**.
+2. Under **Next up**, press any **Settle week** button (the demo shows every week nobody has settled yet). Sign in with a quick account: type a name, press Create. No seed phrase; the key stays in your browser. A "Week N high score" receipt appears with a spinner while the enclave works, then **On hold 0:59**.
 3. Wait. When the countdown ends the page releases the payout and the stamp flips to **Paid**. The winner's balance rises by $5.00 (open the receipt: the account is listed and linked).
 4. Open the receipt and press **Check the math**. You see **Matches ✓**.
 
-This exact flow runs headless against testnet in about 85 seconds: `node web/scripts/judge-flow.mjs http://localhost:5173 3` (needs the dev server and a local Worker, below).
+This exact flow runs headless against testnet in about 90 seconds: `node web/scripts/judge-flow.mjs https://commish-2o8.pages.dev 5` (the last argument is an open week; use `http://localhost:5173` with the dev server and a local Worker, below).
 
 ## Run it locally
 
