@@ -5,15 +5,18 @@ making the repo public, posting and submitting all need a yes first).
 
 ## 1. Worker (Cloudflare)
 
+Wrangler is a dependency of the `worker` package only, so every command below runs from the
+repo root through `pnpm --filter @commish/worker exec`, which runs it inside `worker/`.
+
 ```sh
-pnpm exec wrangler login                         # Joe, interactive (run with `! ` in Claude Code)
-cd worker
-pnpm exec wrangler kv namespace create RATE      # put the printed id in wrangler.toml [[kv_namespaces]]
-pnpm exec wrangler secret put DEMO_ROOT_PRIVATE_KEY   # private key of commishhq.testnet
-pnpm exec wrangler secret put ADMIN_TOKEN             # any long random string
-pnpm exec wrangler secret put ONECLICK_JWT            # optional
-# set ALLOWED_ORIGINS in wrangler.toml to the Pages URL from step 2, then:
-pnpm exec wrangler deploy
+W="pnpm --filter @commish/worker exec wrangler"
+$W whoami                                     # already logged in? if not: $W login (Joe, interactive)
+$W kv namespace create RATE                   # put the printed id in worker/wrangler.toml [[kv_namespaces]]
+$W secret put DEMO_ROOT_PRIVATE_KEY           # private key of commishhq.testnet (prompted, never echoed)
+$W secret put ADMIN_TOKEN                     # any long random string
+$W secret put ONECLICK_JWT                    # optional
+# set ALLOWED_ORIGINS in worker/wrangler.toml to the Pages URL from step 2, then:
+$W deploy
 curl -s https://commish-worker.<subdomain>.workers.dev/health   # {"ok":true}
 ```
 
@@ -22,9 +25,8 @@ Do not set `RATE_LIMIT_SCALE` in production.
 ## 2. Web app (Cloudflare Pages)
 
 ```sh
-cd web
-VITE_WORKER_URL=https://commish-worker.<subdomain>.workers.dev pnpm build
-pnpm exec wrangler pages deploy dist --project-name commish
+VITE_WORKER_URL=https://commish-worker.<subdomain>.workers.dev pnpm --filter @commish/web build
+$W pages deploy ../web/dist --project-name commish   # path is relative to worker/
 ```
 
 `web/public/_redirects` sends every path to `index.html`, so `/demo` and `/l/1/r/w1` load directly.
