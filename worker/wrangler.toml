@@ -13,9 +13,9 @@ DEMO_ROOT_ACCOUNT_ID = "commishhq.testnet"
 COMMISH_CONTRACT_ID = "commish-v2.commishhq.testnet"
 MOCK_USDC_CONTRACT_ID = "usdc.commishhq.testnet"
 DEMO_SLEEPER_LEAGUE_ID = "1197787383500648448"
-ALLOWED_ORIGINS = "*"
+ALLOWED_ORIGINS = "https://commish-2o8.pages.dev"
 
-# Rate-limit counters. `wrangler kv namespace create RATE` and put the id here before deploying.
+# Rate-limit counters (namespace "RATE" on the Commish Cloudflare account).
 [[kv_namespaces]]
 binding = "RATE"
-id = "00000000000000000000000000000000"
+id = "d4ab1401cf5b4ea2978763ac175ee94e"

@@ -7,3 +7,5 @@ ADMIN_TOKEN=
 ONECLICK_JWT=
 # Local dev only: multiplies every rate limit (all local requests share one IP).
 RATE_LIMIT_SCALE=50
+# Local dev only: production sets this in wrangler.toml to the Pages URL.
+ALLOWED_ORIGINS=*
