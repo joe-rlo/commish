@@ -3,7 +3,7 @@
 One line each, newest first: date · decision · why.
 
 - 2026-11-09 · Web app on classic Cloudflare Pages (`commish-2o8.pages.dev`, created with `--force`) · wrangler 4.152 routes `pages` commands to Workers-based Pages, which failed without a config; classic Pages is what the runbook and Joe's go-ahead named, and `_redirects` already handles deep links
-- 2026-11-09 · Worker CORS allows only the Pages origin; local dev sets `ALLOWED_ORIGINS=*` in `.dev.vars` · CORS isn't access control (rate limits are), but it keeps other sites from spending the demo root's NEAR through visitors' browsers
+- 2026-11-09 · Worker CORS allows only the Pages origin; local dev sets `ALLOWED_ORIGINS=*` in `.dev.vars` · other web apps can't call the Worker from a browser; scripts still can, so the per-IP rate limits are what protect the demo root's NEAR
 - 2026-11-07 · Redeployed as `commish-v2.commishhq.testnet` (vault prefix `cmsh2-`) · the config pins the job hash and has no setters, and the job hash changed (reproducible build) along with the security fixes; `commish.commishhq.testnet` stays as the Day-0 spike evidence
 - 2026-11-07 · `league` votes need a quorum of a majority of the league's teams (≥ 2), set at vault creation · an independent security review showed that with quorum 2 the commissioner plus one approved sock-puppet account could pass a transfer immediately. Spec 7.5 said "majority by role weight"; flagged to Joe
 - 2026-11-07 · `approve_claim` names the account being approved · a claim that slips in before the approval can't be approved by mistake
