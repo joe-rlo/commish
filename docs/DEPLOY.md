@@ -25,9 +25,13 @@ Do not set `RATE_LIMIT_SCALE` in production.
 ## 2. Web app (Cloudflare Pages)
 
 ```sh
+$W pages project create commish --production-branch main   # do this first: it prints the Pages URL for ALLOWED_ORIGINS
 VITE_WORKER_URL=https://commish-worker.<subdomain>.workers.dev pnpm --filter @commish/web build
-$W pages deploy ../web/dist --project-name commish   # path is relative to worker/
+$W pages deploy ../web/dist --project-name commish --branch main   # path is relative to worker/
 ```
+
+`--branch main` makes it the production deployment. Without it, wrangler uses the current git
+branch (`build/day0`) and publishes a preview URL instead.
 
 `web/public/_redirects` sends every path to `index.html`, so `/demo` and `/l/1/r/w1` load directly.
 
