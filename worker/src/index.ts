@@ -20,6 +20,7 @@ export interface Env {
 }
 
 const TGAS = 1_000_000_000_000n;
+const STORAGE_PRICE = 10_000_000_000_000_000_000n; // yoctoNEAR per byte (NEAR protocol storage cost)
 const GAS_ROOM = 400_000_000_000_000_000_000_000n; // gas reservation for a 300 Tgas call
 
 function deps(env: Env): Deps {
@@ -65,6 +66,10 @@ function deps(env: Env): Deps {
       const from = Math.max(0, n - 100);
       const leagues = await view<{ commissioner: string }[]>(env.COMMISH_CONTRACT_ID, "list_leagues", { from_index: from, limit: 100 });
       return leagues.some((l) => l.commissioner === accountId);
+    },
+    async rootBalance() {
+      const a = await provider.viewAccount({ accountId: env.DEMO_ROOT_ACCOUNT_ID });
+      return BigInt(a.amount) - BigInt(a.storage_usage) * STORAGE_PRICE;
     },
     async sponsorAmount() {
       return createDeposit(await view<Config>(env.COMMISH_CONTRACT_ID, "get_config")) + GAS_ROOM;

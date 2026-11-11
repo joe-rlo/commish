@@ -5,7 +5,7 @@
 // | POST /accounts     | Creates <name>.<root> with the caller's public key, 0.5 NEAR | 3 per IP per hour        |
 // | POST /faucet       | Mints 100 Test USDC to an account                          | 500 per account per day (token), 10 per IP per hour |
 // | POST /quote        | 1Click dry-run quote (mainnet, never executed)             | 30 per IP per minute       |
-// | POST /sponsor      | NEAR for one league's vault storage, for a quick account   | 1 per IP and 3 total per day |
+// | POST /sponsor      | NEAR for one league's vault storage, for a quick account   | 1 per IP and 3 total per day; root keeps 15 NEAR |
 // | POST /demo/reset   | Seeds a fresh demo league                                  | admin token                |
 //
 // The Worker signs only account creation, faucet mints and sponsor transfers (and, for the admin,
@@ -22,6 +22,8 @@ export interface Deps {
   /** True if `accountId` already created a league as commissioner. */
   hasLeague(accountId: string): Promise<boolean>;
   sponsorAmount(): Promise<bigint>;
+  /** The root account's spendable NEAR (balance minus what its storage locks). */
+  rootBalance(): Promise<bigint>;
   quote(body: Record<string, unknown>): Promise<{ status: number; body: unknown }>;
   seedDemo?(log: (l: string) => void): Promise<{ leagueId: number }>;
   rate: RateStore;
@@ -38,6 +40,11 @@ export interface RateStore {
 
 export const QUICK_ACCOUNT_NEAR = 500_000_000_000_000_000_000_000n; // 0.5 NEAR (SPEC 7.9)
 export const FAUCET_UNITS = 100_000_000n; // 100 Test USDC
+/** Sponsoring a league must leave this much in the root, so quick accounts keep working. */
+export const SPONSOR_RESERVE = 15_000_000_000_000_000_000_000_000n; // 15 NEAR
+/** Quick accounts stop before the root can't pay for the next one and its fees. */
+export const ACCOUNTS_RESERVE = 1_000_000_000_000_000_000_000_000n; // 1 NEAR
+export const LOW_FUNDS = "The demo's test NEAR is running low. Try again later, or use a NEAR wallet with testnet NEAR.";
 const RESERVED = new Set(["commish", "usdc", "admin", "root", "demo", "worker", "keeper", "operator", "vault", "test", "faucet"]);
 const NAME_RE = /^[a-z0-9]{2,20}$/;
 const PUBKEY_RE = /^ed25519:[1-9A-HJ-NP-Za-km-z]{43,44}$/;
@@ -83,6 +90,7 @@ export async function handle(req: Request, d: Deps, ip: string): Promise<Respons
       if (!PUBKEY_RE.test(publicKey)) return fail(400, "public_key must be an ed25519 public key.");
       const accountId = `${name}.${d.rootAccountId}`;
       if (await d.accountExists(accountId)) return fail(409, "That name is taken. Pick another.");
+      if ((await d.rootBalance()) < QUICK_ACCOUNT_NEAR + ACCOUNTS_RESERVE) return fail(503, LOW_FUNDS);
       const tx = await d.createAccount(accountId, publicKey, QUICK_ACCOUNT_NEAR);
       return json({ account_id: accountId, tx });
     }
@@ -121,13 +129,14 @@ export async function handle(req: Request, d: Deps, ip: string): Promise<Respons
       if (!isAccountId(accountId) || !accountId.endsWith(`.${d.rootAccountId}`) || accountId.split(".").length !== d.rootAccountId.split(".").length + 1) {
         return fail(400, "Only quick accounts can get league sponsorship.");
       }
+      const amount = await d.sponsorAmount();
+      if ((await d.rootBalance()) < amount + SPONSOR_RESERVE) return fail(503, LOW_FUNDS);
       const day = 86_400;
       const ipLimited = await limit(d, "sponsor", ip, 1, day);
       if (ipLimited) return ipLimited;
       const total = await limit(d, "sponsor-total", "all", 3, day);
       if (total) return fail(429, "Today's free leagues are used up. Use a NEAR wallet with testnet NEAR, or try tomorrow.");
       if (await d.hasLeague(accountId)) return fail(409, "This account already created a league.");
-      const amount = await d.sponsorAmount();
       const tx = await d.transfer(accountId, amount);
       return json({ sent: amount.toString(), tx });
     }

@@ -19,7 +19,9 @@ About 57 million adults in the US and Canada play fantasy sports ([FSGA, 2025](h
 3. Wait. When the countdown ends the page releases the payout and the stamp flips to **Paid**. The winner's balance rises by $5.00 (open the receipt: the account is listed and linked).
 4. Open the receipt and press **Check the math**. You see **Matches ✓**.
 
-This exact flow runs headless against testnet in about 90 seconds: `node web/scripts/judge-flow.mjs https://commish-2o8.pages.dev 5` (the last argument is an open week; use `http://localhost:5173` with the dev server and a local Worker, below).
+If **Next up** shows no weeks left (earlier visitors settled them all), every receipt in the payouts feed still has **Check the math**.
+
+This exact flow runs headless against testnet in about 90 seconds: `node web/scripts/judge-flow.mjs https://commish-2o8.pages.dev`. It settles the first open week; run `pnpm exec playwright install chromium` once first. For the local dev server and Worker (below), use `http://localhost:5173`.
 
 ## Run it locally
 
@@ -28,7 +30,7 @@ Prerequisites: Node 22+, pnpm 10, Rust stable with `wasm32-unknown-unknown` and 
 ```sh
 pnpm i
 cargo test         # 64 Rust tests (~2 min; the contract tests start a local NEAR sandbox)
-pnpm test          # 69 TypeScript tests
+pnpm test          # 71 TypeScript tests
 ```
 
 Recompute any week from public data, natively, with no keys:

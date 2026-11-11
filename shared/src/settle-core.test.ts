@@ -2,14 +2,15 @@
 // Rust tests, and against a real enclave result from testnet.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { checkMath } from "./check-math.js";
 import type { Settlement } from "./contract.js";
 import { runJob, SettleCore, sha256Hex, type JobInput } from "./settle-core.js";
 
 const repo = join(import.meta.dirname, "..", "..");
-const wasmPath = join(repo, "target/wasm32-unknown-unknown/release/settle_wasm.wasm");
+// Honors CARGO_TARGET_DIR, as cargo does.
+const wasmPath = resolve(repo, process.env.CARGO_TARGET_DIR ?? "target", "wasm32-unknown-unknown/release/settle_wasm.wasm");
 let core: SettleCore;
 
 beforeAll(async () => {

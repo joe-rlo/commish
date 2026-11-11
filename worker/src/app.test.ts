@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cors, FAUCET_UNITS, handle, QUICK_ACCOUNT_NEAR, quoteRequest, type Deps } from "./app";
+import { ACCOUNTS_RESERVE, cors, FAUCET_UNITS, handle, LOW_FUNDS, QUICK_ACCOUNT_NEAR, quoteRequest, SPONSOR_RESERVE, type Deps } from "./app";
 
 const PK = "ed25519:" + "1".repeat(44);
 
@@ -16,6 +16,7 @@ function fakeDeps(over: Partial<Deps> = {}): Deps & { calls: string[] } {
     transfer: vi.fn(async (id, y) => (calls.push(`transfer ${id} ${y}`), "TX3")),
     hasLeague: vi.fn(async (id) => id === "boss.commishhq.testnet"),
     sponsorAmount: vi.fn(async () => 5_780_000_000_000_000_000_000_000n),
+    rootBalance: vi.fn(async () => 60_000_000_000_000_000_000_000_000n),
     quote: vi.fn(async () => ({ status: 200, body: { quote: { amountInFormatted: "0.56" } } })),
     rate: { incr: async (k) => { const n = (counters.get(k) ?? 0) + 1; counters.set(k, n); return n; } },
     adminToken: "secret",
@@ -118,6 +119,29 @@ describe("POST /sponsor", () => {
     expect((await handle(post("/sponsor", { account_id: "a2.commishhq.testnet" }), d, "c")).status).toBe(429);
     expect((await handle(post("/sponsor", { account_id: "a3.commishhq.testnet" }), d, "d")).status).toBe(200);
     expect((await handle(post("/sponsor", { account_id: "a4.commishhq.testnet" }), d, "e")).status).toBe(429);
+  });
+});
+
+describe("root reserve", () => {
+  const SPONSOR = 5_780_000_000_000_000_000_000_000n;
+  it("stops sponsoring before the root drops below the reserve, without using up the IP's daily sponsor", async () => {
+    let balance = SPONSOR + SPONSOR_RESERVE - 1n;
+    const d = fakeDeps({ rootBalance: vi.fn(async () => balance) });
+    const r = await handle(post("/sponsor", { account_id: "alice.commishhq.testnet" }), d, "1");
+    expect(r.status).toBe(503);
+    expect(await r.json()).toEqual({ error: LOW_FUNDS });
+    expect(d.calls).toEqual([]);
+    balance += 1n;
+    expect((await handle(post("/sponsor", { account_id: "alice.commishhq.testnet" }), d, "1")).status).toBe(200);
+  });
+  it("keeps quick accounts working until the root can't cover one plus fees", async () => {
+    let balance = SPONSOR_RESERVE; // below the sponsor floor, well above the accounts floor
+    const d = fakeDeps({ rootBalance: vi.fn(async () => balance) });
+    expect((await handle(post("/accounts", { name: "judge1", public_key: PK }), d, "1")).status).toBe(200);
+    balance = QUICK_ACCOUNT_NEAR + ACCOUNTS_RESERVE - 1n;
+    const r = await handle(post("/accounts", { name: "judge2", public_key: PK }), d, "1");
+    expect(r.status).toBe(503);
+    expect(d.calls).toHaveLength(1);
   });
 });
 

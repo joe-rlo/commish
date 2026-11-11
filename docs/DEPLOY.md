@@ -50,10 +50,11 @@ pnpm commish demo-seed        # ~7.5 testnet NEAR; /demo switches to the new lea
 Then run the README flow against the hosted URL:
 
 ```sh
-node web/scripts/judge-flow.mjs https://commish-2o8.pages.dev 3   # 3 = an open week
+node web/scripts/judge-flow.mjs https://commish-2o8.pages.dev   # settles the first open week
 ```
 
-Keep the root topped up: each quick account takes 0.5 NEAR, each sponsored league ~5.8.
+Keep the root topped up: each quick account takes 0.5 NEAR, each sponsored league ~5.8, each reseed ~7.5.
+The Worker stops sponsoring leagues below 15 NEAR and stops quick accounts below 1.5 NEAR.
 `pnpm commish status --league <n>` and the explorer show balances.
 
 ## 4. Check on a phone
