@@ -4,7 +4,7 @@ The commissioner can't touch the money.
 
 Commish holds a fantasy league's dues in the league's own vault on NEAR (a Sputnik DAO) and pays winners automatically from the league's Sleeper results. The payout math runs inside an attested OutLayer enclave, and anyone can recheck it, in the browser or from the command line.
 
-> NEAR HACKATHON entry (Nov 1–14, 2026). Tracks: Social Money (`social`), Real-World Money (`realworld`). **NEAR testnet only, test money only.** This is a demo, not a real-money product: paid fantasy is regulated differently by state and country. "Commish" is a working name.
+> NEAR HACKATHON entry (Nov 1–14, 2026). Tracks: Social Money (`social`), Real-World Money (`realworld`). **NEAR testnet only, test money only.** This is a demo, not a real-money product: paid fantasy is regulated differently by state and country.
 
 ## The problem
 
