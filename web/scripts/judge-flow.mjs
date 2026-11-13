@@ -43,6 +43,8 @@ try {
   await page.getByRole("link", { name: `Week ${week} high score receipt` }).waitFor({ timeout: 90_000 });
   log("settle sent; receipt appeared");
   const stub = page.getByRole("link", { name: `Week ${week} high score receipt` });
+  // Keep the receipt on screen so the screenshots (and the video) show the hold and the flip to Paid.
+  await stub.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "smooth" }));
   await stub.getByText(/On hold/).waitFor({ timeout: 120_000 });
   log(`on hold: ${await stub.locator(".stamp").first().innerText()}`);
   await page.screenshot({ path: `${out}/flow-1-onhold.png`, fullPage: false });
@@ -55,7 +57,13 @@ try {
   await page.getByRole("button", { name: "Check the math" }).click();
   await page.getByText("Matches ✓").waitFor({ timeout: 60_000 });
   log("Check the math: Matches ✓");
-  await page.screenshot({ path: `${out}/flow-3-matches.png`, fullPage: true });
+  if (process.env.VIDEO_DIR) {
+    // A full-page screenshot resizes the viewport mid-recording; show the proof by scrolling instead.
+    await page.waitForTimeout(2000);
+    await page.getByRole("heading", { name: "Proof" }).evaluate((el) => el.scrollIntoView({ block: "start", behavior: "smooth" }));
+    await page.waitForTimeout(1500);
+  }
+  await page.screenshot({ path: `${out}/flow-3-matches.png`, fullPage: !process.env.VIDEO_DIR });
   console.log(errors.length ? `console errors:\n${errors.join("\n")}` : "no console errors");
 } catch (e) {
   await page.screenshot({ path: `${out}/flow-error.png`, fullPage: true });

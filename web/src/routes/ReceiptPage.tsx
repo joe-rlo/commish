@@ -51,12 +51,14 @@ export function ReceiptPage() {
       : `${keyTitle(st.key)}: ${st.payouts.map((p) => teamName(teams, p.roster_id)).join(" & ") || teamName(teams, st.scores[0]?.roster_id ?? 0)}, ${top !== undefined ? points(top) : ""}. ${st.payouts[0] ? `${dollars(st.payouts[0].amount)} paid automatically by Commish.` : ""} Receipt: ${location.href}`;
 
   return (
-    <article className="pt-4">
-      <Link to={back} className="inline-flex min-h-11 items-center text-muted underline-offset-4 hover:underline">
-        {league.data.name}
-      </Link>
-      <h1 className="display text-[2.8rem] leading-none">{keyTitle(st.key)}</h1>
-      <p className="mt-1 text-muted">{league.data.season} season</p>
+    <article className="pt-3">
+      <div className="endzone">
+        <Link to={back} className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
+          {league.data.name}
+        </Link>
+        <h1 className="painted text-[clamp(2.2rem,10vw,3.2rem)] leading-[1.04]">{keyTitle(st.key)}</h1>
+        <p className="mt-2 font-bold">{league.data.season} season</p>
+      </div>
 
       {(st.status === "Requested" || st.status === "Computed") && (
         <p className="mt-6">
@@ -104,8 +106,8 @@ export function ReceiptPage() {
                 <span className="tnum w-6 text-right text-muted">{i + 1}</span>
                 <Avatar src={teamAvatar(teams, x.roster_id)} name={teamName(teams, x.roster_id)} size={32} />
                 <span className="min-w-0 flex-1 truncate">{teamName(teams, x.roster_id)}</span>
-                {winners.has(x.roster_id) && <span className="rounded-md bg-money-tint px-1.5 py-0.5 text-xs font-bold text-money">High score</span>}
-                <span className="display tnum text-xl">{x.missing ? "No lineup" : points(x.points_x100)}</span>
+                {winners.has(x.roster_id) && <span className="shrink-0 rounded-md bg-money-tint px-1.5 py-0.5 text-xs font-bold text-money">High score</span>}
+                <span className="display tnum text-lg">{x.missing ? "No lineup" : points(x.points_x100)}</span>
               </li>
             ))}
           </ol>

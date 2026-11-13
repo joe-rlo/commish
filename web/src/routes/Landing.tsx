@@ -5,9 +5,11 @@ import { Stamp } from "../components/bits";
 export function Landing() {
   return (
     <div>
-      <section className="pt-6 pb-10">
-        <h1 className="display text-[clamp(3.2rem,15vw,5.6rem)] leading-[0.9]">The commissioner can't touch the money.</h1>
-        <p className="mt-4 max-w-[34rem] text-lg">
+      <section className="pt-3 pb-10">
+        <div className="endzone">
+          <h1 className="painted text-[clamp(2.5rem,11.5vw,4.4rem)] leading-[1.02]">The commissioner can't touch the money.</h1>
+        </div>
+        <p className="mt-6 max-w-[34rem] text-lg">
           Commish holds your league's dues and pays winners automatically from your Sleeper results.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -43,7 +45,7 @@ function SampleReceipt() {
       <h2 className="display text-2xl">Week 9 high score</h2>
       <p className="text-sm text-muted">Armchair Football League</p>
       <div className="flex items-center gap-3 py-3">
-        <span aria-hidden className="inline-grid size-11 place-items-center rounded-full bg-board font-display font-extrabold text-lamp">TB</span>
+        <span aria-hidden className="inline-grid size-11 place-items-center rounded-full bg-board font-display text-lamp">TB</span>
         <div className="min-w-0 flex-1">
           <p className="font-bold">That Bear Guy</p>
           <p className="tnum text-sm text-muted">216.50 pts</p>

@@ -11,13 +11,15 @@ export function LeagueHeader({ league, sleeper, teams, commissionerTeam }: {
   const commissionerName =
     commissionerTeam != null ? teams?.find((t) => t.roster_id === commissionerTeam)?.name : null;
   return (
-    <div className="flex items-center gap-4 py-4">
-      <Avatar src={avatarUrl(sleeper?.avatar)} name={league.name} size={64} />
+    <div className="endzone mt-3 flex items-center gap-4">
+      <span className="shrink-0 rounded-full ring-4 ring-[var(--chalk)]">
+        <Avatar src={avatarUrl(sleeper?.avatar)} name={league.name} size={64} />
+      </span>
       <div className="min-w-0">
-        <h1 className="display text-[2.4rem] leading-none">{league.name}</h1>
-        <p className="mt-1 text-muted">{league.season} season</p>
-        <p className="mt-1 flex min-w-0 items-center gap-1.5 text-muted">
-          <span className="rounded-md bg-board px-1.5 py-0.5 text-xs font-bold text-board-ink">Commissioner</span>
+        <h1 className="painted text-[clamp(1.8rem,8vw,2.6rem)] leading-[1.04]">{league.name}</h1>
+        <p className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-bold">{league.season} season</span>
+          <span className="rounded-md bg-[var(--paint-edge)] px-1.5 py-0.5 text-xs font-bold">Commissioner</span>
           <span className="truncate">{commissionerName ?? league.commissioner.split(".")[0]}</span>
         </p>
       </div>

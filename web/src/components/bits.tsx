@@ -16,7 +16,7 @@ export function Avatar({ src, name, size = 40, dim = false }: { src: string | nu
       <span
         aria-hidden
         style={{ ...style, fontSize: size * 0.38 }}
-        className="inline-grid shrink-0 place-items-center rounded-full bg-board font-display font-extrabold text-lamp"
+        className="inline-grid shrink-0 place-items-center rounded-full bg-board font-display text-lamp"
       >
         {initials || "?"}
       </span>

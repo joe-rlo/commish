@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource/big-shoulders-display/600";
-@import "@fontsource/big-shoulders-display/800";
+@import "@fontsource/graduate/400";
+@import "@fontsource/jersey-15/400";
 @import "@fontsource/atkinson-hyperlegible/400";
 @import "@fontsource/atkinson-hyperlegible/700";
 @import "@fontsource/martian-mono/400";
@@ -70,7 +70,8 @@
   --color-hold-tint: var(--hold-tint);
   --color-stop: var(--stop);
   --color-stop-tint: var(--stop-tint);
-  --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --font-display: "Graduate", "Rockwell", serif;
+  --font-lamp: "Jersey 15", var(--font-display);
   --font-sans: "Atkinson Hyperlegible", system-ui, sans-serif;
   --font-mono: "Martian Mono", ui-monospace, monospace;
 }
@@ -100,12 +101,15 @@ body {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Display type: condensed, signage-like. Headlines are set tight. */
+/* Display type: collegiate block slab, the lettering on jerseys and end zones.
+   Graduate has a single weight, so it's never bolded. */
 .display {
   font-family: var(--font-display);
-  font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.005em;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  /* A hairline of its own color thickens the single weight so small headings and amounts hold up. */
+  -webkit-text-stroke: 0.035em currentColor;
 }
 
 /* ---------- buttons: 44 px minimum ---------- */
@@ -170,6 +174,48 @@ body {
   outline: none;
 }
 
+/* ---------- the end zone: mowed turf with hash marks, lettering painted on ---------- */
+.endzone {
+  --turf: #1b6e3f;
+  --turf-2: #207a47;
+  --chalk: #ffffff;
+  --paint-edge: #14213d;
+  position: relative;
+  margin-inline: -1rem;
+  padding: 2.4rem 1rem 2.6rem;
+  color: var(--chalk);
+  background: repeating-linear-gradient(90deg, var(--turf) 0 3rem, var(--turf-2) 3rem 6rem);
+  overflow: hidden;
+}
+/* Hash marks along both edges. */
+.endzone::before,
+.endzone::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 0.9rem;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--chalk) 80%, transparent) 0 3px, transparent 3px 1.5rem);
+  pointer-events: none;
+}
+.endzone::before { top: 0.6rem; }
+.endzone::after { bottom: 0.6rem; }
+@media (min-width: 640px) {
+  .endzone { margin-inline: 0; border-radius: 20px; padding-inline: 1.5rem; }
+}
+@media (prefers-color-scheme: dark) {
+  .endzone { --turf: #13502e; --turf-2: #175a34; --chalk: #f1f5f2; --paint-edge: #08101c; }
+}
+/* Painted block letters: white fill, navy edge, a little shadow from the stadium lights. */
+.painted {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--chalk);
+  -webkit-text-stroke: 0.11em var(--paint-edge);
+  paint-order: stroke fill;
+  text-shadow: 0.05em 0.07em 0 color-mix(in srgb, black 28%, transparent);
+  letter-spacing: 0.01em;
+}
+
 /* ---------- the pot: a scoreboard ---------- */
 .board {
   background: var(--board);
@@ -178,8 +224,8 @@ body {
   border: 1px solid color-mix(in srgb, var(--board-ink) 12%, transparent);
 }
 .lamp-digits {
-  font-family: var(--font-display);
-  font-weight: 800;
+  font-family: var(--font-lamp);
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   color: var(--lamp);
   line-height: 1;
@@ -230,7 +276,8 @@ body {
   align-items: center;
   gap: 0.35em;
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 400;
+  -webkit-text-stroke: 0.03em currentColor;
   font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;

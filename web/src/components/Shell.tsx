@@ -13,7 +13,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only">Skip to content</a>
       <header className="flex items-center justify-between gap-3 py-3">
         <Link to="/" className="flex min-h-11 items-center gap-2" aria-label="Commish home">
-          <span className="display text-[1.9rem] tracking-tight">Commish</span>
+          <span className="display text-[1.6rem]">Commish</span>
           <span className="rounded-md border-2 border-hold px-1.5 py-0.5 text-xs font-bold text-hold" title="Everything here runs on NEAR testnet with test money">
             Testnet
           </span>

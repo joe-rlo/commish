@@ -99,7 +99,7 @@ function Flow() {
         <text x="255" y="239" textAnchor="middle" className={sub}>on hold; league can stop it</text>
         {/* vault + winner */}
         <rect x="10" y="290" width="320" height="64" rx="14" fill="var(--board)" />
-        <text x="170" y="318" textAnchor="middle" className="fill-[var(--lamp)] font-display text-[22px] font-extrabold">League vault</text>
+        <text x="170" y="318" textAnchor="middle" className="fill-[var(--lamp)] font-display text-[22px]">League vault</text>
         <text x="170" y="339" textAnchor="middle" className="fill-[var(--board-dim)] font-sans text-[11px]">nobody can withdraw alone</text>
         <rect x="100" y="376" width="140" height="46" rx="12" className={box} strokeWidth="2" />
         <text x="170" y="404" textAnchor="middle" className={text}>Winner</text>

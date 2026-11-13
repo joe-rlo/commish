@@ -2,6 +2,7 @@
 
 One line each, newest first: date · decision · why.
 
+- 2026-11-13 · Display type is Graduate (collegiate slab) and the pot's digits are Jersey 15 (dot-matrix); the landing, league and receipt headers sit on an "end zone" strip of turf with hash marks and painted lettering · Big Shoulders on navy read as generic; jersey lettering and an end zone say football at a glance, and SPEC 8 ("a scoreboard in your group chat") still holds: one money green, amber and red unchanged
 - 2026-11-10 · The Worker refuses to sponsor a league if that would leave the root under 15 NEAR, and refuses quick accounts under 1.5 NEAR (503 with a plain message) · three sponsored leagues in a day (17.4 NEAR) could otherwise empty the root and break quick accounts, the judges' main path
 - 2026-11-09 · Web app on classic Cloudflare Pages (`commish-2o8.pages.dev`, created with `--force`) · wrangler 4.152 routes `pages` commands to Workers-based Pages, which failed without a config; classic Pages is what the runbook and Joe's go-ahead named, and `_redirects` already handles deep links
 - 2026-11-09 · Worker CORS allows only the Pages origin; local dev sets `ALLOWED_ORIGINS=*` in `.dev.vars` · other web apps can't call the Worker from a browser; scripts still can, so the per-IP rate limits are what protect the demo root's NEAR

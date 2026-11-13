@@ -64,7 +64,7 @@ function NotFound() {
 
 function PotCard({ league, pot }: { league: League; pot: bigint | undefined }) {
   return (
-    <section aria-labelledby="pot-h" className="board p-5">
+    <section aria-labelledby="pot-h" className="board mt-5 p-5">
       <h2 id="pot-h" className="text-sm font-bold text-board-dim">The pot</h2>
       <div className="mt-1">
         {pot === undefined ? <span className="lamp-digits text-6xl">…</span> : <Scoreboard units={pot} label="The pot" />}
